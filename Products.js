@@ -1,65 +1,20 @@
 // Datos de los productos.
-// Reemplaza "urlAfiliado" con tus enlaces reales (incluye tu tag de asociado)
-// y "tu-id-afiliado-20" por tu ID real de Asociado de Amazon.
+// Tu etiqueta de afiliado es: tiendanovedad-20
+//
+// PARA AGREGAR UN PRODUCTO:
+// Copia un bloque completo (desde { hasta },), pégalo debajo del último
+// y cambia los datos. Sube el número de "id" para que no se repita.
+
 window.PRODUCTS = [
   {
     id: 1,
-    nombre: "Audífonos Inalámbricos Bluetooth con Cancelación Activa de Ruido",
-    categoria: "Electrónica",
-    precio: 79.99,
-    precioOriginal: 129.99,
-    imagen: "https://picsum.photos/seed/audifonos/600/600",
-    urlAfiliado: "https://www.amazon.com/dp/B0EJEMPLO1?tag=tu-id-afiliado-20",
-    badge: "Más vendido",
-  },
-  {
-    id: 2,
-    nombre: "Freidora de Aire Digital 5.5 L con 8 Programas Preestablecidos",
-    categoria: "Hogar y Cocina",
-    precio: 94.99,
-    precioOriginal: 139.99,
-    imagen: "https://picsum.photos/seed/freidora/600/600",
-    urlAfiliado: "https://www.amazon.com/dp/B0EJEMPLO2?tag=tu-id-afiliado-20",
-    badge: "Oferta",
-  },
-  {
-    id: 3,
-    nombre: "Smartwatch Deportivo con GPS, Oxímetro y Monitor de Sueño",
-    categoria: "Electrónica",
-    precio: 129.99,
-    precioOriginal: null,
-    imagen: "https://picsum.photos/seed/smartwatch/600/600",
-    urlAfiliado: "https://www.amazon.com/dp/B0EJEMPLO3?tag=tu-id-afiliado-20",
-    badge: null,
-  },
-  {
-    id: 4,
-    nombre: "Teclado Mecánico RGB Inalámbrico con Switches Intercambiables",
-    categoria: "Oficina y Gaming",
-    precio: 59.99,
-    precioOriginal: 89.99,
-    imagen: "https://picsum.photos/seed/teclado/600/600",
-    urlAfiliado: "https://www.amazon.com/dp/B0EJEMPLO4?tag=tu-id-afiliado-20",
-    badge: "Oferta",
-  },
-  {
-    id: 5,
-    nombre: "Aspiradora Robot con Mapeo Láser y Base de Autovaciado",
-    categoria: "Hogar y Cocina",
-    precio: 199.99,
-    precioOriginal: 279.99,
-    imagen: "https://picsum.photos/seed/aspiradora/600/600",
-    urlAfiliado: "https://www.amazon.com/dp/B0EJEMPLO5?tag=tu-id-afiliado-20",
-    badge: "Más vendido",
-  },
-  {
-    id: 6,
-    nombre: "Lámpara de Escritorio LED con Carga Inalámbrica y Puerto USB",
-    categoria: "Oficina y Gaming",
-    precio: 34.99,
-    precioOriginal: null,
-    imagen: "https://picsum.photos/seed/lampara/600/600",
-    urlAfiliado: "https://www.amazon.com/dp/B0EJEMPLO6?tag=tu-id-afiliado-20",
-    badge: "Nuevo",
+    nombre: "Luz trasera recargable LED para bicicleta, 5 modos, resistente al agua",
+    categoria: "Deportes y Aire Libre",
+    precio: 12.88,
+    precioOriginal: 13.88,
+    imagen: "https://m.media-amazon.com/images/I/61ouwRlfrZL._AC_SL1500_.jpg",
+    urlAfiliado: "https://www.amazon.com/dp/B0GW7C5GTW?tag=tiendanovedad-20",
+    badge: "Amazon's Choice",
+    razon: "El modo destello se ve de lejos en avenida, calle y jornadas largas. Recargable por USB, así que no dependes de pilas.",
   },
 ];
