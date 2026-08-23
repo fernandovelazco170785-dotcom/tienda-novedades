@@ -1,6 +1,7 @@
-// Datos de ejemplo de productos.
-// Reemplaza "urlAfiliado" con tus enlaces reales (incluye tu tag de asociado).
-export const products = [
+// Datos de los productos.
+// Reemplaza "urlAfiliado" con tus enlaces reales (incluye tu tag de asociado)
+// y "tu-id-afiliado-20" por tu ID real de Asociado de Amazon.
+window.PRODUCTS = [
   {
     id: 1,
     nombre: "Audífonos Inalámbricos Bluetooth con Cancelación Activa de Ruido",
