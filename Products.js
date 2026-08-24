@@ -108,15 +108,4 @@ window.PRODUCTS = [
     badge: "Amazon's Choice",
     razon: "Diez unidades para repartir entre trabajo, clases y respaldos sueltos. Son USB 2.0, así que sirven para documentos, no para mover archivos pesados.",
   },
-  {
-    id: 10,
-    nombre: "Laptop Phantom 15,6\" FHD, Pentium Gold, 4 GB RAM, SSD 128 GB, Windows 11",
-    categoria: "Oficina y Gaming",
-    precio: 219.99,
-    precioOriginal: null,
-    imagen: "https://m.media-amazon.com/images/I/71CaJNgo8TL._AC_SL1500_.jpg",
-    urlAfiliado: "https://amzn.to/4xmoRS8",
-    badge: "",
-    razon: "Equipo de entrada para documentos, navegación y clases en línea. Con 4 GB de RAM se queda corto si abres muchas pestañas, pero admite ampliar el almacenamiento hasta 2 TB.",
-  },
-  ];
+    ];
