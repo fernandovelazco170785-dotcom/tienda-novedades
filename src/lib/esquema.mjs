@@ -54,34 +54,82 @@ export const categoriaSchema = z.strictObject({
   descripcion: z.string().trim().min(10).max(200),
 });
 
+// Campos compartidos por productos publicados y pendientes.
+const urlAfiliado = z.string().superRefine((valor, ctx) => {
+  const problema = problemaUrlAfiliado(valor);
+  if (problema) ctx.addIssue({ code: 'custom', message: problema });
+});
+
+const campos = {
+  id: z.string().regex(SLUG, 'usa solo minúsculas, números y guiones (ej: "mouse-razer-viper")'),
+  asin: z.union([z.literal(''), z.string().regex(ASIN, 'el ASIN tiene 10 letras/números en mayúscula')]),
+  titulo: z.string().trim().min(5).max(140).refine(sinPrecios, MSG_SIN_PRECIOS),
+  categoria: z.string().regex(SLUG, 'usa el "slug" de data/categorias.json'),
+  descripcion_corta: z.string().trim().min(20).max(320).refine(sinPrecios, MSG_SIN_PRECIOS),
+  imagen: z.union([z.literal(''), z.url({ protocol: /^https$/, error: 'debe ser una URL https o quedar vacía' })]),
+  destacado: z.boolean(),
+  fecha: z.iso.date({ error: 'usa el formato AAAA-MM-DD' }),
+};
+
+/** El ASIN escrito a mano debe coincidir con el del enlace largo, si lo tiene. */
+const asinCoincide = (
+  /** @type {{ asin: string, url_afiliado: string }} */ p,
+  /** @type {z.RefinementCtx} */ ctx,
+) => {
+  const asinEnlace = p.url_afiliado ? asinDeUrl(p.url_afiliado) : null;
+  if (asinEnlace && p.asin && asinEnlace !== p.asin) {
+    ctx.addIssue({ code: 'custom', path: ['asin'], message: `no coincide con el ASIN del enlace (${asinEnlace})` });
+  }
+};
+
 export const productoSchema = z
   .strictObject({
-    id: z.string().regex(SLUG, 'usa solo minúsculas, números y guiones (ej: "mouse-razer-viper")'),
-    asin: z.union([z.literal(''), z.string().regex(ASIN, 'el ASIN tiene 10 letras/números en mayúscula')]),
-    titulo: z.string().trim().min(5).max(140).refine(sinPrecios, MSG_SIN_PRECIOS),
-    categoria: z.string().regex(SLUG, 'usa el "slug" de data/categorias.json'),
-    descripcion_corta: z.string().trim().min(20).max(320).refine(sinPrecios, MSG_SIN_PRECIOS),
-    imagen: z.union([z.literal(''), z.url({ protocol: /^https$/, error: 'debe ser una URL https o quedar vacía' })]),
-    url_afiliado: z.string().superRefine((valor, ctx) => {
-      const problema = problemaUrlAfiliado(valor);
-      if (problema) ctx.addIssue({ code: 'custom', message: problema });
-    }),
-    destacado: z.boolean(),
-    fecha_agregado: z.iso.date({ error: 'usa el formato AAAA-MM-DD' }),
+    id: campos.id,
+    asin: campos.asin,
+    titulo: campos.titulo,
+    categoria: campos.categoria,
+    descripcion_corta: campos.descripcion_corta,
+    imagen: campos.imagen,
+    url_afiliado: urlAfiliado,
+    destacado: campos.destacado,
+    fecha_agregado: campos.fecha,
   })
-  .superRefine((p, ctx) => {
-    const asinEnlace = asinDeUrl(p.url_afiliado);
-    if (asinEnlace && p.asin && asinEnlace !== p.asin) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['asin'],
-        message: `no coincide con el ASIN del enlace (${asinEnlace})`,
-      });
-    }
-  });
+  .superRefine(asinCoincide);
+
+// Producto propuesto que espera revisión en data/pendientes.json.
+// Se publica cuando tiene url_afiliado; con estado "descartado" pasa al historial.
+export const pendienteSchema = z
+  .strictObject({
+    id: campos.id,
+    estado: z.enum(['pendiente', 'descartado'], { error: 'usa "pendiente" o "descartado"' }),
+    url_afiliado: z.union([z.literal(''), urlAfiliado]),
+    imagen: campos.imagen,
+    titulo: campos.titulo,
+    categoria: campos.categoria,
+    descripcion_corta: campos.descripcion_corta,
+    destacado: campos.destacado,
+    asin: campos.asin,
+    buscar_en_amazon: z.string().trim().min(3).max(120),
+    motivo: z.string().trim().min(5).max(400),
+    fuentes: z.array(z.url({ protocol: /^https?$/ })).max(5),
+    fecha_propuesta: campos.fecha,
+  })
+  .superRefine(asinCoincide);
+
+// Historial de lo que salió del catálogo, para no volver a proponerlo y poder restaurarlo.
+export const descartadoSchema = z.strictObject({
+  tipo: z.enum(['retirado', 'descartado']),
+  fecha: campos.fecha,
+  motivo: z.string().trim().min(3).max(400),
+  fuentes: z.array(z.string()).max(5),
+  // Copia completa del producto o pendiente original.
+  item: z.looseObject({ id: z.string(), titulo: z.string(), categoria: z.string() }),
+});
 
 /** @typedef {z.infer<typeof productoSchema>} Producto */
 /** @typedef {z.infer<typeof categoriaSchema>} Categoria */
+/** @typedef {z.infer<typeof pendienteSchema>} Pendiente */
+/** @typedef {z.infer<typeof descartadoSchema>} Descartado */
 
 const sangrar = (/** @type {string} */ texto) => texto.replace(/^/gm, '    ');
 
@@ -135,4 +183,33 @@ export function validarCatalogo(productosCrudos, categoriasCrudas) {
     throw new Error(`data/products.json tiene ${errores.length} error(es):\n\n${errores.join('\n\n')}`);
   }
   return { productos, categorias: cats.data };
+}
+
+/**
+ * Valida una lista de data/ (pendientes o descartados). Si hay errores lanza uno solo que los lista todos.
+ * @template T
+ * @param {z.ZodType<T>} schema
+ * @param {unknown} crudo
+ * @param {string} archivo nombre del archivo, para el mensaje de error
+ * @returns {T[]}
+ */
+export function validarLista(schema, crudo, archivo) {
+  if (!Array.isArray(crudo)) throw new Error(`${archivo} debe ser una lista: [ {...}, {...} ]`);
+  /** @type {string[]} */
+  const errores = [];
+  /** @type {T[]} */
+  const items = [];
+  crudo.forEach((item, i) => {
+    const r = schema.safeParse(item);
+    if (r.success) {
+      items.push(r.data);
+    } else {
+      const id = item && typeof item.id === 'string' ? ` (id: ${item.id})` : '';
+      errores.push(`Elemento #${i + 1}${id}:\n${sangrar(z.prettifyError(r.error))}`);
+    }
+  });
+  if (errores.length > 0) {
+    throw new Error(`${archivo} tiene ${errores.length} error(es):\n\n${errores.join('\n\n')}`);
+  }
+  return items;
 }
