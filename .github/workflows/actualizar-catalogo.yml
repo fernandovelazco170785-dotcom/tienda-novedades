@@ -8,6 +8,9 @@
 #
 # Mientras el PR del bot esté abierto, cada ejecución suma cambios a ese mismo PR (no pisa tus ediciones).
 # Si lo cierras sin merge, la siguiente ejecución empieza de cero desde main.
+#
+# Avisos: GitHub te notifica del PR (te lo asigna) y de las fallas. El correo con Resend es opcional
+# y queda desactivado mientras no exista el secreto RESEND_API_KEY.
 
 name: Actualizar catálogo
 
@@ -122,9 +125,11 @@ jobs:
           echo "hay_cambios=si" >> "$GITHUB_OUTPUT"
 
       - name: Abrir el Pull Request o comentar el resumen
+        id: pr
         if: steps.guardar.outputs.hay_cambios == 'si'
         env:
           GH_TOKEN: ${{ github.token }}
+          DUENO: ${{ github.repository_owner }}
         run: |
           if [ "$PR_ABIERTO" = "si" ]; then
             gh pr comment "$RAMA" --body-file tmp/resumen.md || echo "::warning::No hay un PR abierto para $RAMA; los cambios quedaron en la rama."
@@ -132,9 +137,26 @@ jobs:
             gh pr create --base "$BASE" --head "$RAMA" \
               --title "Actualización del catálogo ($(date -u +%F))" \
               --body-file tmp/resumen.md
+            # Asignarte el PR hace que GitHub te avise directamente.
+            gh pr edit "$RAMA" --add-assignee "$DUENO" || echo "::warning::No se pudo asignar el PR a $DUENO."
           fi
+          echo "url=$(gh pr view "$RAMA" --json url --jq .url 2>/dev/null || true)" >> "$GITHUB_OUTPUT"
 
       - name: Resumen de la ejecución
         if: always()
         run: |
           if [ -f tmp/resumen.md ]; then cat tmp/resumen.md >> "$GITHUB_STEP_SUMMARY"; fi
+
+      # Opcional: no hace nada hasta que exista el secreto RESEND_API_KEY.
+      # Avisa cuando hay cambios y cuando la ejecución falla. No avisa por tus propias ediciones (push).
+      - name: Aviso por correo (Resend)
+        if: always() && github.event_name != 'push'
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          CORREO_AVISOS: ${{ secrets.CORREO_AVISOS }}
+          CORREO_REMITENTE: ${{ vars.CORREO_REMITENTE }}
+          RESULTADO: ${{ job.status }}
+          HAY_CAMBIOS: ${{ steps.guardar.outputs.hay_cambios }}
+          PR_URL: ${{ steps.pr.outputs.url }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node scripts/enviar-correo.mjs
