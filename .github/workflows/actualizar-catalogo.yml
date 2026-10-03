@@ -1,0 +1,140 @@
+# Actualiza data/*.json y abre un Pull Request para que lo apruebes. Nada se publica sin tu merge.
+#
+# Cuándo corre:
+#   • Cada lunes (schedule): publica pendientes con enlace y pide propuestas nuevas a Claude.
+#   • A mano (Actions → Actualizar catálogo → Run workflow): eliges "completo" o "solo_publicar" (sin costo).
+#   • Cuando editas data/pendientes.json dentro del PR del bot: mueve a products.json los que ya
+#     tienen enlace, en el mismo PR (sin costo).
+#
+# Mientras el PR del bot esté abierto, cada ejecución suma cambios a ese mismo PR (no pisa tus ediciones).
+# Si lo cierras sin merge, la siguiente ejecución empieza de cero desde main.
+
+name: Actualizar catálogo
+
+on:
+  schedule:
+    - cron: '47 11 * * 1' # lunes 11:47 UTC (6:47 en Lima/Bogotá)
+  workflow_dispatch:
+    inputs:
+      modo:
+        description: 'completo = propuestas nuevas con Claude (usa la API) · solo_publicar = sin costo'
+        type: choice
+        options: [completo, solo_publicar]
+        default: completo
+  push:
+    branches: [bot/actualizacion-catalogo]
+    paths: [data/pendientes.json]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+# Una ejecución a la vez, para que no se pisen.
+concurrency:
+  group: actualizar-catalogo
+  cancel-in-progress: false
+
+env:
+  RAMA: bot/actualizacion-catalogo
+  BASE: ${{ github.event.repository.default_branch }}
+  MODO: ${{ github.event_name == 'push' && 'solo_publicar' || inputs.modo || 'completo' }}
+  ASTRO_TELEMETRY_DISABLED: '1'
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Preparar Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Elegir la rama de trabajo
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENTO: ${{ github.event_name }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if [ "$EVENTO" = "push" ]; then
+            # Editaste pendientes.json en la rama del bot: se trabaja sobre esa misma rama.
+            echo "PR_ABIERTO=si" >> "$GITHUB_ENV"
+          elif [ "$(gh pr list --head "$RAMA" --state open --json number --jq length)" != "0" ]; then
+            # Hay un PR del bot sin revisar: se suman los cambios ahí, trayendo lo nuevo de main.
+            git fetch origin "$RAMA"
+            git checkout -B "$RAMA" "origin/$RAMA"
+            if ! git merge --no-edit "origin/$BASE"; then
+              echo "::error::La rama $RAMA tiene conflictos con $BASE. Resuélvelos en el PR o ciérralo para empezar de cero."
+              exit 1
+            fi
+            echo "PR_ABIERTO=si" >> "$GITHUB_ENV"
+          else
+            git checkout -B "$RAMA"
+            echo "PR_ABIERTO=no" >> "$GITHUB_ENV"
+          fi
+
+      - name: Actualizar datos (${{ env.MODO }})
+        env:
+          # La clave solo existe como secreto de GitHub; nunca se escribe en el código ni llega a la web.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Límites opcionales (Settings → Secrets and variables → Actions → Variables).
+          CLAUDE_MODELO: ${{ vars.CLAUDE_MODELO }}
+          CLAUDE_ESFUERZO: ${{ vars.CLAUDE_ESFUERZO }}
+          BUSQUEDA_WEB: ${{ vars.BUSQUEDA_WEB }}
+          MAX_PRODUCTOS_NUEVOS: ${{ vars.MAX_PRODUCTOS_NUEVOS }}
+          MAX_POR_CATEGORIA: ${{ vars.MAX_POR_CATEGORIA }}
+          MAX_PENDIENTES: ${{ vars.MAX_PENDIENTES }}
+          MAX_RETIROS: ${{ vars.MAX_RETIROS }}
+          MAX_BUSQUEDAS_POR_CATEGORIA: ${{ vars.MAX_BUSQUEDAS_POR_CATEGORIA }}
+          MAX_TOKENS_RESPUESTA: ${{ vars.MAX_TOKENS_RESPUESTA }}
+          MAX_TOKENS_EJECUCION: ${{ vars.MAX_TOKENS_EJECUCION }}
+        run: node scripts/actualizar.mjs --modo "$MODO"
+
+      - name: Comprobar que la web compila
+        run: npm run build
+
+      - name: Guardar los cambios en la rama del bot
+        id: guardar
+        run: |
+          git add data/products.json data/pendientes.json data/descartados.json
+          if git diff --cached --quiet; then
+            echo "Sin cambios en el catálogo."
+            echo "hay_cambios=no" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git commit -m "Catálogo: actualización ($MODO) $(date -u +%F)"
+          if [ "$PR_ABIERTO" = "si" ]; then
+            git push origin "HEAD:$RAMA"
+          else
+            # Rama nueva desde main: reemplaza lo que quedara de un PR anterior ya cerrado.
+            git push --force origin "HEAD:$RAMA"
+          fi
+          echo "hay_cambios=si" >> "$GITHUB_OUTPUT"
+
+      - name: Abrir el Pull Request o comentar el resumen
+        if: steps.guardar.outputs.hay_cambios == 'si'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$PR_ABIERTO" = "si" ]; then
+            gh pr comment "$RAMA" --body-file tmp/resumen.md || echo "::warning::No hay un PR abierto para $RAMA; los cambios quedaron en la rama."
+          else
+            gh pr create --base "$BASE" --head "$RAMA" \
+              --title "Actualización del catálogo ($(date -u +%F))" \
+              --body-file tmp/resumen.md
+          fi
+
+      - name: Resumen de la ejecución
+        if: always()
+        run: |
+          if [ -f tmp/resumen.md ]; then cat tmp/resumen.md >> "$GITHUB_STEP_SUMMARY"; fi
