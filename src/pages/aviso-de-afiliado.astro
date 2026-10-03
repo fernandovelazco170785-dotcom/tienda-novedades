@@ -1,0 +1,90 @@
+---
+import Base from '../layouts/Base.astro';
+import Migas from '../components/Migas.astro';
+import { SITIO, AVISO_AFILIADO } from '../config';
+---
+
+<Base
+  titulo="Aviso de afiliado"
+  descripcion={`Cómo funcionan los enlaces de afiliado de Amazon en ${SITIO.nombre}, por qué no mostramos precios y qué datos se recogen.`}
+>
+  <Migas pasos={[{ texto: 'Inicio', href: '/' }, { texto: 'Aviso de afiliado' }]} />
+
+  <article class="seccion">
+    <div class="contenedor texto">
+      <h1>Aviso de afiliado</h1>
+      <p class="destacado"><strong>{AVISO_AFILIADO}</strong></p>
+
+      <h2>Cómo funcionan los enlaces</h2>
+      <p>
+        {SITIO.nombre} participa en el Programa de Asociados de Amazon Services LLC, un programa de publicidad para afiliados
+        diseñado para que los sitios web obtengan comisiones por publicidad anunciando e incluyendo enlaces a Amazon.com.
+      </p>
+      <p>
+        Cuando haces clic en «Ver en Amazon» o «Ver precio actual en Amazon» y compras algo que califica, Amazon me paga una
+        comisión. A ti no te cuesta nada extra: pagas lo mismo que si entraras directo.
+      </p>
+      <p>
+        No tengo stock ni vendo nada. La compra se hace en Amazon, con sus propias garantías y políticas de devolución.
+      </p>
+
+      <h2>Precios</h2>
+      <p>
+        No publico precios en esta web porque cambian a menudo. El precio vigente, la disponibilidad y el costo de envío
+        son los que muestra Amazon al momento de comprar.
+      </p>
+
+      <h2 id="sobre-esta-web">Sobre esta web</h2>
+      <p>
+        Soy estudiante de Ingeniería Industrial y me interesa cómo se comparan los productos: qué especificación importa de
+        verdad y cuál solo aparece en la caja. Aquí publico selecciones cortas de componentes y periféricos de PC, con la
+        razón de cada elección.
+      </p>
+
+      <h2 id="privacidad">Privacidad</h2>
+      <p>
+        Esta web no pide datos personales, no tiene formularios ni registro, y no instala cookies propias de seguimiento.
+      </p>
+      <p>
+        Al hacer clic en un enlace sales hacia Amazon, que sí usa cookies para registrar la visita durante 24 horas. Ese
+        proceso se rige por la política de privacidad de Amazon, no por esta web.
+      </p>
+
+      <h2>Marcas</h2>
+      <p>Amazon y el logotipo de Amazon son marcas registradas de Amazon.com, Inc. o sus afiliados.</p>
+    </div>
+  </article>
+</Base>
+
+<style>
+  .texto {
+    max-width: 46rem;
+  }
+
+  .texto h2 {
+    margin-top: 2.25rem;
+    margin-bottom: 0.75rem;
+    font-size: 1.35rem;
+    scroll-margin-top: 7rem;
+  }
+
+  .texto p + p {
+    margin-top: 0.85rem;
+  }
+
+  .texto p {
+    color: var(--texto-suave);
+  }
+
+  .destacado {
+    margin-top: 1.25rem;
+    padding: 1rem 1.25rem;
+    background: var(--acento-suave);
+    border-left: 4px solid var(--acento);
+    border-radius: 0.5rem;
+  }
+
+  .destacado strong {
+    color: var(--texto);
+  }
+</style>

@@ -1,0 +1,116 @@
+---
+import { SITIO, AVISO_AFILIADO } from '../config';
+import { categoriasConProductos, urlCategoria } from '../lib/catalogo';
+
+const anio = new Date().getFullYear();
+---
+
+<footer class="pie">
+  <div class="contenedor">
+    <div class="pie__columnas">
+      <div>
+        <p class="pie__marca">{SITIO.nombre}</p>
+        <p>{SITIO.descripcion}</p>
+      </div>
+      <nav aria-label="Categorías">
+        <p class="pie__titulo">Categorías</p>
+        <ul>
+          {
+            categoriasConProductos().map((c) => (
+              <li>
+                <a href={urlCategoria(c.slug)}>{c.nombre}</a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+      <nav aria-label="Información">
+        <p class="pie__titulo">Información</p>
+        <ul>
+          <li><a href="/aviso-de-afiliado/">Aviso de afiliado</a></li>
+          <li><a href="/aviso-de-afiliado/#privacidad">Privacidad</a></li>
+          <li><a href="/aviso-de-afiliado/#sobre-esta-web">Sobre esta web</a></li>
+        </ul>
+      </nav>
+    </div>
+
+    <div class="pie__legal">
+      <p><strong>{AVISO_AFILIADO}</strong></p>
+      <p>
+        Los precios y la disponibilidad cambian a menudo. El precio vigente es el que muestra Amazon al momento de
+        comprar.
+      </p>
+      <p>Amazon y el logotipo de Amazon son marcas registradas de Amazon.com, Inc. o sus afiliados.</p>
+      <p>© {anio} {SITIO.nombre}</p>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .pie {
+    margin-top: 2rem;
+    background: var(--oscuro);
+    color: #cbd5e1;
+    font-size: 0.9rem;
+  }
+
+  .pie__columnas {
+    display: grid;
+    gap: 2rem;
+    padding-block: 2.5rem;
+  }
+
+  @media (min-width: 40rem) {
+    .pie__columnas {
+      grid-template-columns: 2fr 1fr 1fr;
+    }
+  }
+
+  .pie__marca {
+    margin-bottom: 0.5rem;
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 800;
+  }
+
+  .pie__titulo {
+    margin-bottom: 0.6rem;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .pie ul {
+    display: grid;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .pie a {
+    color: #cbd5e1;
+    text-decoration: none;
+  }
+
+  .pie a:hover {
+    color: var(--acento);
+    text-decoration: underline;
+  }
+
+  .pie__legal {
+    display: grid;
+    gap: 0.4rem;
+    padding-block: 1.5rem 2rem;
+    border-top: 1px solid #1e293b;
+    color: #94a3b8;
+    font-size: 0.8rem;
+  }
+
+  .pie__legal strong {
+    color: #e2e8f0;
+    font-weight: 600;
+  }
+</style>

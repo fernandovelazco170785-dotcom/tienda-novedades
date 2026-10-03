@@ -1,0 +1,74 @@
+---
+import Base from '../../layouts/Base.astro';
+import Migas from '../../components/Migas.astro';
+import TarjetaProducto from '../../components/TarjetaProducto.astro';
+import { categoriasConProductos, productosDeCategoria, urlCategoria, type Categoria } from '../../lib/catalogo';
+
+export function getStaticPaths() {
+  return categoriasConProductos().map((categoria) => ({
+    params: { slug: categoria.slug },
+    props: { categoria },
+  }));
+}
+
+interface Props {
+  categoria: Categoria;
+}
+
+const { categoria } = Astro.props;
+const productos = productosDeCategoria(categoria.slug);
+const otras = categoriasConProductos().filter((c) => c.slug !== categoria.slug);
+---
+
+<Base titulo={categoria.nombre} descripcion={`${categoria.descripcion} Selección con enlaces a Amazon.`}>
+  <Migas pasos={[{ texto: 'Inicio', href: '/' }, { texto: categoria.nombre }]} />
+
+  <section class="seccion">
+    <div class="contenedor">
+      <div class="seccion__cabecera">
+        <h1>{categoria.nombre}</h1>
+        <p>{categoria.descripcion}</p>
+      </div>
+      <div class="grilla-productos">
+        {productos.map((p) => <TarjetaProducto producto={p} />)}
+      </div>
+    </div>
+  </section>
+
+  {
+    otras.length > 0 && (
+      <nav class="seccion" aria-labelledby="titulo-otras">
+        <div class="contenedor">
+          <h2 id="titulo-otras" class="otras__titulo">
+            Otras categorías
+          </h2>
+          <ul class="otras">
+            {otras.map((c) => (
+              <li>
+                <a href={urlCategoria(c.slug)} class="boton boton--secundario">
+                  {c.nombre}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </nav>
+    )
+  }
+</Base>
+
+<style>
+  .otras__titulo {
+    margin-bottom: 1rem;
+    font-size: 1.15rem;
+  }
+
+  .otras {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+</style>

@@ -1,0 +1,155 @@
+---
+import BotonAmazon from './BotonAmazon.astro';
+import {
+  categoriaDe,
+  formatearFecha,
+  imagenConTamano,
+  srcsetImagen,
+  urlCategoria,
+  urlProducto,
+  type Producto,
+} from '../lib/catalogo';
+
+interface Props {
+  producto: Producto;
+  mostrarFecha?: boolean;
+}
+
+const { producto, mostrarFecha = false } = Astro.props;
+const categoria = categoriaDe(producto);
+const enlace = urlProducto(producto);
+---
+
+<article class="tarjeta">
+  <a href={enlace} class="tarjeta__imagen" tabindex="-1" aria-hidden="true">
+    {
+      producto.imagen ? (
+        <img
+          src={imagenConTamano(producto.imagen, 400)}
+          srcset={srcsetImagen(producto.imagen, [300, 400, 600])}
+          sizes="(min-width: 72rem) 17rem, (min-width: 40rem) 45vw, 92vw"
+          alt=""
+          width="400"
+          height="400"
+          loading="lazy"
+          decoding="async"
+        />
+      ) : (
+        <span class="tarjeta__sin-imagen">Imagen no disponible</span>
+      )
+    }
+  </a>
+  <div class="tarjeta__cuerpo">
+    <a href={urlCategoria(categoria.slug)} class="tarjeta__categoria">{categoria.nombre}</a>
+    <h3 class="tarjeta__titulo"><a href={enlace}>{producto.titulo}</a></h3>
+    <p class="tarjeta__descripcion">{producto.descripcion_corta}</p>
+    {
+      mostrarFecha && (
+        <p class="tarjeta__fecha">
+          Agregado el <time datetime={producto.fecha_agregado}>{formatearFecha(producto.fecha_agregado)}</time>
+        </p>
+      )
+    }
+    <div class="tarjeta__acciones">
+      <BotonAmazon producto={producto} texto="Ver precio actual en Amazon" />
+    </div>
+  </div>
+</article>
+
+<style>
+  .tarjeta {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--superficie);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    box-shadow: var(--sombra);
+    transition:
+      box-shadow 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .tarjeta:hover {
+    box-shadow: var(--sombra-alta);
+    transform: translateY(-2px);
+  }
+
+  .tarjeta__imagen {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+    padding: 1.25rem;
+    background: #fff;
+    border-bottom: 1px solid var(--borde);
+  }
+
+  .tarjeta__imagen img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .tarjeta__sin-imagen {
+    color: var(--texto-tenue);
+    font-size: 0.85rem;
+  }
+
+  .tarjeta__cuerpo {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem 1.1rem 1.15rem;
+  }
+
+  .tarjeta__categoria {
+    align-self: flex-start;
+    color: var(--acento-texto);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+  }
+
+  .tarjeta__categoria:hover {
+    text-decoration: underline;
+  }
+
+  .tarjeta__titulo {
+    font-size: 1.02rem;
+    font-weight: 650;
+  }
+
+  .tarjeta__titulo a {
+    color: var(--texto);
+    text-decoration: none;
+  }
+
+  .tarjeta__titulo a:hover {
+    color: var(--acento-texto);
+    text-decoration: underline;
+  }
+
+  .tarjeta__descripcion {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    overflow: hidden;
+    color: var(--texto-suave);
+    font-size: 0.9rem;
+  }
+
+  .tarjeta__fecha {
+    color: var(--texto-tenue);
+    font-size: 0.8rem;
+  }
+
+  .tarjeta__acciones {
+    display: grid;
+    margin-top: auto;
+    padding-top: 0.5rem;
+  }
+</style>
