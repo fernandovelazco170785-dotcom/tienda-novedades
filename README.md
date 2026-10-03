@@ -38,9 +38,11 @@ Sitio estático hecho con [Astro](https://astro.build) y desplegado en Vercel. N
 ```
 
 - `id`: minúsculas, números y guiones. Es la URL de la ficha: `/producto/<id>/`.
-- `asin`: 10 caracteres en mayúscula, o `""` si aún no lo tienes.
+- `asin`: 10 caracteres en mayúscula. **Opcional con enlaces `amzn.to`** (puede ir `""` o no estar).
+  Con enlaces de `www.amazon.com` se toma solo del enlace (`/dp/ASIN`); si escribes uno distinto, el build falla.
 - `categoria`: el `slug` de una categoría de `data/categorias.json`.
-- `url_afiliado`: enlace de SiteStripe (`amzn.to/...`) o de amazon.com con `tag=tiendanovedad-20`.
+- `url_afiliado`: solo `https://amzn.to/CODIGO` (enlace corto de SiteStripe) o `https://www.amazon.com/...`
+  con `tag=tiendanovedad-20`. Cualquier otro dominio (amazon.com sin www, amazon.es, a.co…) hace fallar el build.
 - `imagen`: URL `https` o `""` (se muestra "Imagen no disponible").
 - `destacado`: `true` lo muestra en "Productos estrella".
 - `fecha_agregado`: `AAAA-MM-DD`. "Novedades de la semana" muestra los 6 más recientes.
@@ -55,6 +57,7 @@ Requiere Node 22.12 o superior.
 npm install
 npm run dev      # http://localhost:4321
 npm run build    # genera dist/ y valida products.json
+npm test         # pruebas de las reglas (enlaces, ASIN, propuestas de Claude)
 ```
 
 ## Actualización automática
@@ -65,6 +68,7 @@ Nada llega a la web hasta que haces merge.
 1. **Publica** los pendientes a los que ya pegaste enlace (pasan a `products.json` con la fecha del día).
 2. **Pide a Claude** propuestas nuevas por categoría. Claude busca en la web (nunca en Amazon) y redacta
    título y descripción. Entran a `data/pendientes.json` **sin ASIN ni enlace**: esos los pones tú desde SiteStripe.
+   Claude no puede aportarlos: si una propuesta trae un ASIN o un enlace de Amazon en el texto, se rechaza.
 3. Puede **sugerir retiros** de productos descontinuados o reemplazados (máximo 2 por semana, con fuente).
    Quedan en `data/descartados.json`, desde donde se pueden devolver copiando `item` a `products.json`.
 

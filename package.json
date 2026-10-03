@@ -11,7 +11,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "actualizar": "node --env-file-if-exists=.env scripts/actualizar.mjs --modo completo",
-    "publicar": "node scripts/actualizar.mjs --modo solo_publicar"
+    "publicar": "node scripts/actualizar.mjs --modo solo_publicar",
+    "test": "node --test \"scripts/pruebas/*.test.mjs\""
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.4",

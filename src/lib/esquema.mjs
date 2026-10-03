@@ -29,8 +29,10 @@ function avisoCampoDePrecio(item) {
 }
 
 /**
- * Devuelve el problema del enlace de afiliado, o null si está bien.
- * Acepta enlaces de amazon.com con tu tag o enlaces cortos amzn.to de SiteStripe.
+ * Devuelve el problema del enlace de afiliado, o null si está bien. Solo se aceptan:
+ *   • https://amzn.to/CODIGO — enlace corto de SiteStripe (tu tag va dentro del enlace).
+ *   • https://www.amazon.com/...?tag=tiendanovedad-20 — enlace largo con tu tag a la vista.
+ * Cualquier otro dominio (amazon.com sin www, amazon.es, a.co…) hace fallar el build.
  * @param {string} valor
  * @returns {string | null}
  */
@@ -42,12 +44,24 @@ export function problemaUrlAfiliado(valor) {
     return 'no es una URL válida';
   }
   if (url.protocol !== 'https:') return 'debe empezar con https://';
-  if (url.hostname === 'amzn.to') return null;
-  if (url.hostname !== 'www.amazon.com' && url.hostname !== 'amazon.com') {
-    return 'debe ser un enlace de amazon.com o amzn.to';
+  if (url.username || url.password || url.port) return 'no puede llevar usuario, contraseña ni puerto';
+  if (url.hostname === 'amzn.to') {
+    return /^\/[A-Za-z0-9]+\/?$/.test(url.pathname) ? null : 'el enlace corto debe tener la forma https://amzn.to/CODIGO';
+  }
+  if (url.hostname !== 'www.amazon.com') {
+    return `el dominio "${url.hostname}" no está permitido: usa https://amzn.to/... o https://www.amazon.com/...`;
   }
   if (url.searchParams.get('tag') !== TAG_AFILIADO) return `debe llevar tag=${TAG_AFILIADO}`;
   return null;
+}
+
+/** true si es un enlace corto de SiteStripe (https://amzn.to/...). @param {string} valor */
+export function esEnlaceCorto(valor) {
+  try {
+    return new URL(valor).hostname === 'amzn.to';
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -84,13 +98,26 @@ const campos = {
   fecha: z.iso.date({ error: 'usa el formato AAAA-MM-DD' }),
 };
 
-/** El ASIN escrito a mano debe coincidir con el del enlace largo, si lo tiene. */
-const asinCoincide = (
-  /** @type {{ asin: string, url_afiliado: string }} */ p,
+/**
+ * El ASIN depende del tipo de enlace:
+ *   • amzn.to: opcional (el enlace corto no lo muestra).
+ *   • www.amazon.com: se toma del enlace (/dp/ASIN). Si escribes uno, debe coincidir;
+ *     si el enlace no lo trae, hay que escribirlo.
+ */
+const reglasAsin = (
+  /** @type {{ asin?: string, url_afiliado: string }} */ p,
   /** @type {z.RefinementCtx} */ ctx,
 ) => {
-  const asinEnlace = p.url_afiliado ? asinDeUrl(p.url_afiliado) : null;
-  if (asinEnlace && p.asin && asinEnlace !== p.asin) {
+  // Sin enlace (pendiente) o con un enlace inválido (ese error ya se informa) no hay nada que revisar.
+  if (!p.url_afiliado || problemaUrlAfiliado(p.url_afiliado) || esEnlaceCorto(p.url_afiliado)) return;
+  const asinEnlace = asinDeUrl(p.url_afiliado);
+  if (!asinEnlace && !p.asin) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['asin'],
+      message: 'el enlace de amazon.com no muestra el ASIN (/dp/...): usa el enlace del producto o escribe el asin',
+    });
+  } else if (asinEnlace && p.asin && asinEnlace !== p.asin) {
     ctx.addIssue({ code: 'custom', path: ['asin'], message: `no coincide con el ASIN del enlace (${asinEnlace})` });
   }
 };
@@ -98,7 +125,7 @@ const asinCoincide = (
 export const productoSchema = z
   .strictObject({
     id: campos.id,
-    asin: campos.asin,
+    asin: campos.asin.optional(),
     titulo: campos.titulo,
     categoria: campos.categoria,
     descripcion_corta: campos.descripcion_corta,
@@ -107,7 +134,19 @@ export const productoSchema = z
     destacado: campos.destacado,
     fecha_agregado: campos.fecha,
   })
-  .superRefine(asinCoincide);
+  .superRefine(reglasAsin)
+  // Resultado normalizado: asin siempre presente ("" con amzn.to) y tomado del enlace largo si falta.
+  .transform((p) => ({
+    id: p.id,
+    asin: p.asin || asinDeUrl(p.url_afiliado) || '',
+    titulo: p.titulo,
+    categoria: p.categoria,
+    descripcion_corta: p.descripcion_corta,
+    imagen: p.imagen,
+    url_afiliado: p.url_afiliado,
+    destacado: p.destacado,
+    fecha_agregado: p.fecha_agregado,
+  }));
 
 // Producto propuesto que espera revisión en data/pendientes.json.
 // Se publica cuando tiene url_afiliado; con estado "descartado" pasa al historial.
@@ -127,7 +166,7 @@ export const pendienteSchema = z
     fuentes: z.array(z.url({ protocol: /^https?$/ })).max(5),
     fecha_propuesta: campos.fecha,
   })
-  .superRefine(asinCoincide);
+  .superRefine(reglasAsin);
 
 // Historial de lo que salió del catálogo, para no volver a proponerlo y poder restaurarlo.
 export const descartadoSchema = z.strictObject({

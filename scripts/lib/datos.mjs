@@ -173,8 +173,13 @@ export function publicarListos(datos, hoy) {
   return { publicados, descartadosAhora, errores };
 }
 
+// Claude nunca aporta ASIN ni enlaces: si aparece uno escrito en el texto, la propuesta se rechaza.
+const ENLACE_AMAZON = /amzn\.to|amazon\.[a-z]{2,3}(?:\.[a-z]{2})?\//i;
+const CODIGO_ASIN = /\bB0[A-Z0-9]{8}\b/;
+
 /**
  * Agrega propuestas nuevas a pendientes.json, sin repetir nada conocido.
+ * Entran siempre con asin y url_afiliado vacíos: solo el dueño los completa al pegar su enlace de SiteStripe.
  * @param {Datos} datos se modifica en el lugar
  * @param {string} categoria slug
  * @param {{ id: string, titulo: string, descripcion_corta: string, motivo: string, buscar_en_amazon: string, fuentes: string[] }[]} propuestas
@@ -190,6 +195,11 @@ export function agregarPropuestas(datos, categoria, propuestas, cupo, hoy) {
   for (const propuesta of propuestas) {
     if (agregadas.length >= cupo) {
       rechazadas.push(`"${propuesta.titulo}": se alcanzó el máximo de propuestas`);
+      continue;
+    }
+    const textos = [propuesta.titulo, propuesta.descripcion_corta, propuesta.motivo, propuesta.buscar_en_amazon].join(' ');
+    if (ENLACE_AMAZON.test(textos) || CODIGO_ASIN.test(textos)) {
+      rechazadas.push(`"${propuesta.titulo}": incluye un enlace o ASIN de Amazon; esos los pones tú`);
       continue;
     }
     const repetido = buscarRepetido(propuesta, conocidos(datos));
