@@ -2,6 +2,7 @@
 node_modules/
 dist/
 .astro/
+tmp/
 
 # Claves y variables locales: NUNCA subirlas
 .env
