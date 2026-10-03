@@ -1,6 +1,6 @@
 // Única puerta de entrada a los datos del sitio. Las páginas leen productos desde aquí,
 // nunca directo del JSON, para que más adelante se pueda enriquecer cada producto
-// (precio, foto, ranking vía PA-API) sin tocar las páginas.
+// (foto y ranking vía PA-API) sin tocar las páginas. La web nunca muestra precios.
 
 import productosCrudos from '../../data/products.json';
 import categoriasCrudas from '../../data/categorias.json';
@@ -12,7 +12,7 @@ export type { Producto, Categoria, DatosEnVivo };
 // Si el JSON tiene errores, el build se detiene aquí con la lista de problemas.
 const { productos, categorias } = validarCatalogo(productosCrudos, categoriasCrudas);
 
-// Precio, foto y ranking desde la API de Amazon, si hay un proveedor activo (ver proveedor.ts).
+// Foto y ranking desde la API de Amazon, si hay un proveedor activo (ver proveedor.ts).
 const datosEnVivo = await proveedorActivo().obtener(productos.map((p) => p.asin).filter(Boolean));
 
 const posicion = new Map(productos.map((p, i) => [p.id, i]));

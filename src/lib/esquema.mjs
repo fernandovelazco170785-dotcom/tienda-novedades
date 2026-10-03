@@ -15,6 +15,19 @@ const PRECIO_FIJO = /\$\s?\d|\d\s?(?:usd|us\$|d[oó]lares)\b/i;
 const sinPrecios = (/** @type {string} */ texto) => !PRECIO_FIJO.test(texto);
 const MSG_SIN_PRECIOS = 'no escribas precios fijos; el precio se ve en Amazon';
 
+// La web nunca muestra precios. Los esquemas ya rechazan campos desconocidos;
+// esto solo da un mensaje más claro si alguien vuelve a agregar uno de precio.
+const CAMPO_DE_PRECIO = /^(precio|price|precio_?original|descuento|discount)/i;
+
+/** @param {unknown} item @returns {string | null} */
+function avisoCampoDePrecio(item) {
+  if (!item || typeof item !== 'object') return null;
+  const campos = Object.keys(item).filter((k) => CAMPO_DE_PRECIO.test(k));
+  return campos.length
+    ? `el campo ${campos.map((c) => `"${c}"`).join(', ')} no se usa: la web no muestra precios (se ven en Amazon). Bórralo.`
+    : null;
+}
+
 /**
  * Devuelve el problema del enlace de afiliado, o null si está bien.
  * Acepta enlaces de amazon.com con tu tag o enlaces cortos amzn.to de SiteStripe.
@@ -163,6 +176,11 @@ export function validarCatalogo(productosCrudos, categoriasCrudas) {
   productosCrudos.forEach((crudo, i) => {
     const id = crudo && typeof crudo.id === 'string' ? ` (id: ${crudo.id})` : '';
     const etiqueta = `Producto #${i + 1}${id}`;
+    const precio = avisoCampoDePrecio(crudo);
+    if (precio) {
+      errores.push(`${etiqueta}: ${precio}`);
+      return;
+    }
     const r = productoSchema.safeParse(crudo);
     if (!r.success) {
       errores.push(`${etiqueta}:\n${sangrar(z.prettifyError(r.error))}`);
@@ -200,11 +218,16 @@ export function validarLista(schema, crudo, archivo) {
   /** @type {T[]} */
   const items = [];
   crudo.forEach((item, i) => {
+    const id = item && typeof item.id === 'string' ? ` (id: ${item.id})` : '';
+    const precio = avisoCampoDePrecio(item);
+    if (precio) {
+      errores.push(`Elemento #${i + 1}${id}: ${precio}`);
+      return;
+    }
     const r = schema.safeParse(item);
     if (r.success) {
       items.push(r.data);
     } else {
-      const id = item && typeof item.id === 'string' ? ` (id: ${item.id})` : '';
       errores.push(`Elemento #${i + 1}${id}:\n${sangrar(z.prettifyError(r.error))}`);
     }
   });

@@ -13,7 +13,7 @@ Sitio estático hecho con [Astro](https://astro.build) y desplegado en Vercel. N
 | `data/categorias.json` | Categorías (slug, nombre y descripción). |
 | `src/lib/esquema.mjs` | Reglas que valida el build: si un producto está mal, el build falla y dice por qué. |
 | `src/lib/catalogo.ts` | Lee y ordena los productos para las páginas. |
-| `src/lib/proveedor.ts` | Punto para conectar la API de Amazon (precio, foto, ranking). Hoy desactivado. |
+| `src/lib/proveedor.ts` | Punto para conectar la API de Amazon (foto y ranking). Hoy desactivado. |
 | `scripts/actualizar.mjs` | Actualización semanal con Claude (`npm run actualizar`) y publicación de pendientes (`npm run publicar`). |
 | `.github/workflows/actualizar-catalogo.yml` | GitHub Action semanal y manual que abre el Pull Request. |
 | `scripts/enviar-correo.mjs` | Aviso opcional por correo con Resend (desactivado sin clave). |
@@ -44,7 +44,8 @@ Sitio estático hecho con [Astro](https://astro.build) y desplegado en Vercel. N
 - `imagen`: URL `https` o `""` (se muestra "Imagen no disponible").
 - `destacado`: `true` lo muestra en "Productos estrella".
 - `fecha_agregado`: `AAAA-MM-DD`. "Novedades de la semana" muestra los 6 más recientes.
-- **No escribas precios** en el título ni en la descripción: el build los rechaza. El precio se ve en Amazon.
+- **La web no muestra precios.** No hay campo de precio (el build rechaza `precio`, `price`, `descuento`…)
+  y tampoco acepta precios escritos en el título o la descripción. Siempre se usa "Ver precio actual en Amazon".
 
 ## Trabajar en local
 
@@ -139,6 +140,5 @@ Queda **desactivado** mientras no exista el secreto `RESEND_API_KEY`. Para activ
 ## Conectar la API de Amazon (más adelante)
 
 Cuando Amazon te dé acceso a su API de afiliados, se implementa un proveedor en `src/lib/proveedor.ts`
-con las credenciales en variables de entorno de Vercel. Las páginas ya usan esos datos: muestran el precio
-con su fecha y hora, y la foto de la API. Sin proveedor, siguen mostrando "Ver precio actual en Amazon".
-Para usar precios, Amazon exige actualizarlos al menos cada 24 horas: habría que recompilar el sitio a diario.
+con las credenciales en variables de entorno de Vercel. Las páginas ya usan la foto de la API cuando existe.
+**Los precios no se muestran ni con la API conectada:** la web siempre envía a "Ver precio actual en Amazon".
