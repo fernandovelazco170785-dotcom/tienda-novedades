@@ -1,0 +1,30 @@
+---
+import { AVISO_AFILIADO } from '../config';
+---
+
+<div class="aviso" role="note">
+  <p class="contenedor">
+    {AVISO_AFILIADO}
+    <a href="/aviso-de-afiliado/">Más información</a>
+  </p>
+</div>
+
+<style>
+  .aviso {
+    background: var(--acento-suave);
+    border-bottom: 1px solid #fde68a;
+    color: #78350f;
+    font-size: 0.85rem;
+  }
+
+  .aviso p {
+    padding-block: 0.5rem;
+    text-align: center;
+  }
+
+  .aviso a {
+    color: #78350f;
+    font-weight: 600;
+    margin-left: 0.25rem;
+  }
+</style>

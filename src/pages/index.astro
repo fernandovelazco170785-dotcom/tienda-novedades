@@ -1,0 +1,191 @@
+---
+import Base from '../layouts/Base.astro';
+import TarjetaProducto from '../components/TarjetaProducto.astro';
+import {
+  categoriasConProductos,
+  novedades,
+  productosDeCategoria,
+  productosEstrella,
+  urlCategoria,
+} from '../lib/catalogo';
+
+const estrella = productosEstrella();
+const nuevos = novedades(6);
+const categorias = categoriasConProductos();
+---
+
+<Base>
+  <section class="portada">
+    <div class="contenedor">
+      <span class="antetitulo">Componentes y periféricos de PC</span>
+      <h1>Productos estrella y novedades</h1>
+      <p class="portada__texto">
+        Una selección corta de componentes y periféricos disponibles en Amazon, con la razón de cada elección. La reviso
+        cada semana: sumo novedades y dejo arriba lo que más vale la pena mirar.
+      </p>
+      <ul class="portada__categorias" aria-label="Categorías">
+        {
+          categorias.map((c) => (
+            <li>
+              <a href={urlCategoria(c.slug)}>{c.nombre}</a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
+  {
+    estrella.length > 0 && (
+      <section class="seccion" id="productos-estrella" aria-labelledby="titulo-estrella">
+        <div class="contenedor">
+          <div class="seccion__cabecera">
+            <span class="antetitulo">Recomendados</span>
+            <h2 id="titulo-estrella">Productos estrella</h2>
+            <p>Los que recomendaría primero en cada categoría.</p>
+          </div>
+          <div class="grilla-productos">
+            {estrella.map((p) => (
+              <TarjetaProducto producto={p} />
+            ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  <section class="seccion" id="novedades" aria-labelledby="titulo-novedades">
+    <div class="contenedor">
+      <div class="seccion__cabecera">
+        <span class="antetitulo">Recién agregados</span>
+        <h2 id="titulo-novedades">Novedades de la semana</h2>
+        <p>Lo último que se sumó a la selección.</p>
+      </div>
+      <div class="grilla-productos">
+        {nuevos.map((p) => <TarjetaProducto producto={p} mostrarFecha />)}
+      </div>
+    </div>
+  </section>
+
+  <section class="seccion" aria-labelledby="titulo-categorias">
+    <div class="contenedor">
+      <div class="seccion__cabecera">
+        <h2 id="titulo-categorias">Explorar por categoría</h2>
+      </div>
+      <ul class="categorias">
+        {
+          categorias.map((c) => {
+            const total = productosDeCategoria(c.slug).length;
+            return (
+              <li>
+                <a href={urlCategoria(c.slug)} class="categoria">
+                  <span class="categoria__nombre">{c.nombre}</span>
+                  <span class="categoria__descripcion">{c.descripcion}</span>
+                  <span class="categoria__total">
+                    {total} {total === 1 ? 'producto' : 'productos'} →
+                  </span>
+                </a>
+              </li>
+            );
+          })
+        }
+      </ul>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .portada {
+    padding-block: 3rem 2.5rem;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #451a03 100%);
+    color: #fff;
+  }
+
+  .portada .antetitulo {
+    color: var(--acento);
+  }
+
+  .portada h1 {
+    max-width: 22ch;
+  }
+
+  .portada__texto {
+    max-width: 40rem;
+    margin-top: 1rem;
+    color: #cbd5e1;
+    font-size: 1.05rem;
+  }
+
+  .portada__categorias {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 1.5rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .portada__categorias a {
+    display: inline-block;
+    padding: 0.45rem 0.9rem;
+    border: 1px solid rgb(255 255 255 / 0.25);
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.08);
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  .portada__categorias a:hover {
+    border-color: var(--acento);
+    background: rgb(245 158 11 / 0.15);
+    color: #fff;
+  }
+
+  .categorias {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .categoria {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    height: 100%;
+    padding: 1.25rem;
+    background: var(--superficie);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    color: var(--texto);
+    text-decoration: none;
+    transition: border-color 0.15s ease;
+  }
+
+  .categoria:hover {
+    border-color: var(--acento);
+    color: var(--texto);
+  }
+
+  .categoria__nombre {
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+
+  .categoria__descripcion {
+    color: var(--texto-suave);
+    font-size: 0.9rem;
+  }
+
+  .categoria__total {
+    margin-top: auto;
+    padding-top: 0.25rem;
+    color: var(--acento-texto);
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+</style>

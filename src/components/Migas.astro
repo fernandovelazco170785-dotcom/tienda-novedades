@@ -1,0 +1,17 @@
+---
+interface Props {
+  pasos: { texto: string; href?: string }[];
+}
+
+const { pasos } = Astro.props;
+---
+
+<nav class="migas contenedor" aria-label="Ruta de navegación">
+  <ol>
+    {
+      pasos.map((p) => (
+        <li>{p.href ? <a href={p.href}>{p.texto}</a> : <span aria-current="page">{p.texto}</span>}</li>
+      ))
+    }
+  </ol>
+</nav>

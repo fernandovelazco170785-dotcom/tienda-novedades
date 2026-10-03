@@ -1,0 +1,25 @@
+{
+  "name": "tienda-novedades",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "actualizar": "node --env-file-if-exists=.env scripts/actualizar.mjs --modo completo",
+    "publicar": "node scripts/actualizar.mjs --modo solo_publicar",
+    "test": "node --test \"scripts/pruebas/*.test.mjs\""
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "^3.7.4",
+    "astro": "^7.3.5",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "^0.131.0"
+  }
+}

@@ -1,0 +1,33 @@
+---
+// La web nunca muestra precios: siempre envía a Amazon, donde está el precio vigente.
+import type { Producto } from '../lib/catalogo';
+
+interface Props {
+  producto: Producto;
+}
+
+const { producto } = Astro.props;
+---
+
+<p class="precio">
+  <span class="precio__etiqueta">Precio:</span>
+  <a href={producto.url_afiliado} target="_blank" rel="sponsored nofollow noopener">Ver precio actual en Amazon</a>
+</p>
+
+<style>
+  .precio {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: baseline;
+    font-size: 1.05rem;
+  }
+
+  .precio__etiqueta {
+    color: var(--texto-suave);
+  }
+
+  .precio a {
+    font-weight: 600;
+  }
+</style>

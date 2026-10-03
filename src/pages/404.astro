@@ -1,0 +1,48 @@
+---
+import Base from '../layouts/Base.astro';
+import { categoriasConProductos, urlCategoria } from '../lib/catalogo';
+---
+
+<Base titulo="Página no encontrada" noIndex>
+  <section class="seccion">
+    <div class="contenedor no-encontrada">
+      <span class="antetitulo">Error 404</span>
+      <h1>No encontramos esta página</h1>
+      <p>Puede que el producto ya no esté en la selección. Prueba desde el inicio o una categoría:</p>
+      <ul>
+        <li><a href="/" class="boton boton--amazon">Ir al inicio</a></li>
+        {
+          categoriasConProductos().map((c) => (
+            <li>
+              <a href={urlCategoria(c.slug)} class="boton boton--secundario">
+                {c.nombre}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .no-encontrada {
+    padding-block: 2rem;
+    text-align: center;
+  }
+
+  .no-encontrada p {
+    margin-top: 0.75rem;
+    color: var(--texto-suave);
+  }
+
+  .no-encontrada ul {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    margin: 1.5rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+</style>

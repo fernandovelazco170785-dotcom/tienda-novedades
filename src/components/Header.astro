@@ -1,0 +1,138 @@
+---
+import { SITIO } from '../config';
+import { categoriasConProductos, urlCategoria } from '../lib/catalogo';
+
+const ruta = Astro.url.pathname;
+const enlaces = [
+  { href: '/', texto: 'Inicio' },
+  ...categoriasConProductos().map((c) => ({ href: urlCategoria(c.slug), texto: c.nombre })),
+];
+const esActual = (href: string) => (href === '/' ? ruta === '/' : ruta.startsWith(href));
+---
+
+<header class="cabecera">
+  <div class="contenedor cabecera__fila">
+    <a href="/" class="logo" aria-label={`${SITIO.nombre}, ir al inicio`}>
+      <span class="logo__icono" aria-hidden="true">M</span>
+      <span class="logo__texto">Mejor<span>Compra</span></span>
+    </a>
+    <nav class="menu" aria-label="Principal">
+      <ul>
+        {
+          enlaces.map((e) => (
+            <li>
+              <a href={e.href} aria-current={esActual(e.href) ? 'page' : undefined}>
+                {e.texto}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .cabecera {
+    background: rgb(255 255 255 / 0.92);
+    border-bottom: 1px solid var(--borde);
+  }
+
+  /* Fija arriba solo en pantallas anchas: en el celular ocuparía demasiado alto. */
+  @media (min-width: 52rem) {
+    .cabecera {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(8px);
+    }
+  }
+
+  .cabecera__fila {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.25rem 1.5rem;
+    padding-block: 0.65rem;
+  }
+
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--texto);
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 1.15rem;
+    letter-spacing: -0.01em;
+  }
+
+  .logo:hover {
+    color: var(--texto);
+  }
+
+  .logo__icono {
+    display: grid;
+    place-items: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 0.5rem;
+    background: var(--acento);
+    color: #1c1917;
+    font-size: 1.1rem;
+  }
+
+  .logo__texto span {
+    color: var(--acento-texto);
+  }
+
+  /* En móvil el menú baja a su propia fila y se desplaza de lado. */
+  .menu {
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin-inline: -0.25rem;
+  }
+
+  .menu::-webkit-scrollbar {
+    display: none;
+  }
+
+  .menu ul {
+    display: flex;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    white-space: nowrap;
+  }
+
+  .menu a {
+    display: block;
+    padding: 0.4rem 0.7rem;
+    border-radius: 0.5rem;
+    color: var(--texto-suave);
+    font-size: 0.925rem;
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  .menu a:hover {
+    background: var(--acento-suave);
+    color: var(--texto);
+  }
+
+  .menu a[aria-current='page'] {
+    background: var(--acento-suave);
+    color: var(--acento-texto);
+    font-weight: 600;
+  }
+
+  @media (min-width: 52rem) {
+    .menu {
+      width: auto;
+      margin-inline: 0;
+    }
+  }
+</style>

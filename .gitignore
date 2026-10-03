@@ -1,0 +1,16 @@
+# Dependencias y build
+node_modules/
+dist/
+.astro/
+tmp/
+
+# Claves y variables locales: NUNCA subirlas
+.env
+.env.*
+!.env.example
+
+# Sistema / editores
+.DS_Store
+.vscode/
+.idea/
+npm-debug.log*
