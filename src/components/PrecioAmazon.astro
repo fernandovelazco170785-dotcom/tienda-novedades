@@ -1,0 +1,59 @@
+---
+// Línea de precio. Sin datos de la API (hoy) muestra "Ver precio actual en Amazon".
+// Con la API conectada muestra el precio con la fecha y hora en que se obtuvo, como exige Amazon.
+import { datosDe, type Producto } from '../lib/catalogo';
+
+interface Props {
+  producto: Producto;
+}
+
+const { producto } = Astro.props;
+const { precio } = datosDe(producto);
+const obtenido = precio
+  ? new Intl.DateTimeFormat('es', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' }).format(
+      new Date(precio.obtenido),
+    )
+  : '';
+---
+
+<p class="precio">
+  <span class="precio__etiqueta">Precio:</span>
+  {
+    precio ? (
+      <>
+        <strong>{precio.texto}</strong>
+        <small>
+          al {obtenido} UTC. El precio y la disponibilidad pueden cambiar; el que vale es el de Amazon al comprar.
+        </small>
+      </>
+    ) : (
+      <a href={producto.url_afiliado} target="_blank" rel="sponsored nofollow noopener">
+        Ver precio actual en Amazon
+      </a>
+    )
+  }
+</p>
+
+<style>
+  .precio {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: baseline;
+    font-size: 1.05rem;
+  }
+
+  .precio__etiqueta {
+    color: var(--texto-suave);
+  }
+
+  .precio a {
+    font-weight: 600;
+  }
+
+  .precio small {
+    flex-basis: 100%;
+    color: var(--texto-tenue);
+    font-size: 0.75rem;
+  }
+</style>

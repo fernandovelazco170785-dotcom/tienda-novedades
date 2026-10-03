@@ -2,12 +2,14 @@
 import Base from '../../layouts/Base.astro';
 import Migas from '../../components/Migas.astro';
 import BotonAmazon from '../../components/BotonAmazon.astro';
+import PrecioAmazon from '../../components/PrecioAmazon.astro';
 import TarjetaProducto from '../../components/TarjetaProducto.astro';
 import { AVISO_AFILIADO } from '../../config';
 import {
   categoriaDe,
   formatearFecha,
   imagenConTamano,
+  imagenDe,
   relacionados,
   srcsetImagen,
   todosLosProductos,
@@ -29,7 +31,8 @@ interface Props {
 const { producto } = Astro.props;
 const categoria = categoriaDe(producto);
 const otros = relacionados(producto, 3);
-const imagenGrande = producto.imagen ? imagenConTamano(producto.imagen, 800) : '';
+const imagen = imagenDe(producto);
+const imagenGrande = imagen ? imagenConTamano(imagen, 800) : '';
 ---
 
 <Base titulo={producto.titulo} descripcion={producto.descripcion_corta} imagen={imagenGrande || undefined}>
@@ -45,10 +48,10 @@ const imagenGrande = producto.imagen ? imagenConTamano(producto.imagen, 800) : '
     <div class="contenedor ficha">
       <div class="ficha__imagen">
         {
-          producto.imagen ? (
+          imagen ? (
             <img
               src={imagenGrande}
-              srcset={srcsetImagen(producto.imagen, [400, 600, 800])}
+              srcset={srcsetImagen(imagen, [400, 600, 800])}
               sizes="(min-width: 52rem) 28rem, 92vw"
               alt={producto.titulo}
               width="800"
@@ -68,12 +71,7 @@ const imagenGrande = producto.imagen ? imagenConTamano(producto.imagen, 800) : '
         <p class="ficha__descripcion">{producto.descripcion_corta}</p>
 
         <div class="ficha__compra">
-          <p class="ficha__precio">
-            <span>Precio:</span>
-            <a href={producto.url_afiliado} target="_blank" rel="sponsored nofollow noopener">
-              Ver precio actual en Amazon
-            </a>
-          </p>
+          <PrecioAmazon producto={producto} />
           <BotonAmazon producto={producto} texto="Ver en Amazon" grande />
           <p class="ficha__nota">
             {AVISO_AFILIADO} El precio y la disponibilidad pueden cambiar: revisa el precio final en Amazon antes de comprar.
@@ -170,22 +168,6 @@ const imagenGrande = producto.imagen ? imagenConTamano(producto.imagen, 800) : '
     background: var(--superficie);
     border: 1px solid var(--borde);
     border-radius: var(--radio);
-  }
-
-  .ficha__precio {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    align-items: baseline;
-    font-size: 1.05rem;
-  }
-
-  .ficha__precio span {
-    color: var(--texto-suave);
-  }
-
-  .ficha__precio a {
-    font-weight: 600;
   }
 
   .ficha__nota {

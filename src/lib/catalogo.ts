@@ -5,11 +5,15 @@
 import productosCrudos from '../../data/products.json';
 import categoriasCrudas from '../../data/categorias.json';
 import { validarCatalogo, type Producto, type Categoria } from './esquema.mjs';
+import { proveedorActivo, type DatosEnVivo } from './proveedor';
 
-export type { Producto, Categoria };
+export type { Producto, Categoria, DatosEnVivo };
 
 // Si el JSON tiene errores, el build se detiene aquí con la lista de problemas.
 const { productos, categorias } = validarCatalogo(productosCrudos, categoriasCrudas);
+
+// Precio, foto y ranking desde la API de Amazon, si hay un proveedor activo (ver proveedor.ts).
+const datosEnVivo = await proveedorActivo().obtener(productos.map((p) => p.asin).filter(Boolean));
 
 const posicion = new Map(productos.map((p, i) => [p.id, i]));
 
@@ -17,6 +21,15 @@ const posicion = new Map(productos.map((p, i) => [p.id, i]));
 function porFechaDesc(a: Producto, b: Producto): number {
   if (a.fecha_agregado !== b.fecha_agregado) return a.fecha_agregado < b.fecha_agregado ? 1 : -1;
   return (posicion.get(b.id) ?? 0) - (posicion.get(a.id) ?? 0);
+}
+
+export function datosDe(producto: Producto): DatosEnVivo {
+  return (producto.asin && datosEnVivo.get(producto.asin)) || {};
+}
+
+/** Foto de la API si existe; si no, la de products.json (puede ser ""). */
+export function imagenDe(producto: Producto): string {
+  return datosDe(producto).imagen ?? producto.imagen;
 }
 
 export function todosLosProductos(): Producto[] {

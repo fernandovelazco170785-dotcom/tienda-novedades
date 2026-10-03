@@ -4,6 +4,7 @@ import {
   categoriaDe,
   formatearFecha,
   imagenConTamano,
+  imagenDe,
   srcsetImagen,
   urlCategoria,
   urlProducto,
@@ -18,15 +19,16 @@ interface Props {
 const { producto, mostrarFecha = false } = Astro.props;
 const categoria = categoriaDe(producto);
 const enlace = urlProducto(producto);
+const imagen = imagenDe(producto);
 ---
 
 <article class="tarjeta">
   <a href={enlace} class="tarjeta__imagen" tabindex="-1" aria-hidden="true">
     {
-      producto.imagen ? (
+      imagen ? (
         <img
-          src={imagenConTamano(producto.imagen, 400)}
-          srcset={srcsetImagen(producto.imagen, [300, 400, 600])}
+          src={imagenConTamano(imagen, 400)}
+          srcset={srcsetImagen(imagen, [300, 400, 600])}
           sizes="(min-width: 72rem) 17rem, (min-width: 40rem) 45vw, 92vw"
           alt=""
           width="400"
