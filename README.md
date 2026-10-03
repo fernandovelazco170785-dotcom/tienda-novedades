@@ -16,6 +16,7 @@ Sitio estático hecho con [Astro](https://astro.build) y desplegado en Vercel. N
 | `src/lib/proveedor.ts` | Punto para conectar la API de Amazon (precio, foto, ranking). Hoy desactivado. |
 | `scripts/actualizar.mjs` | Actualización semanal con Claude (`npm run actualizar`) y publicación de pendientes (`npm run publicar`). |
 | `.github/workflows/actualizar-catalogo.yml` | GitHub Action semanal y manual que abre el Pull Request. |
+| `scripts/enviar-correo.mjs` | Aviso opcional por correo con Resend (desactivado sin clave). |
 | `src/pages/` | Páginas: portada, categoría, producto, aviso de afiliado, 404 y `robots.txt`. |
 | `src/config.ts` | Nombre del sitio y texto del aviso de afiliado. |
 | `astro.config.mjs` | URL pública del sitio (`SITE_URL`), usada en el sitemap y las URL canónicas. |
@@ -108,6 +109,32 @@ bastante menos. Revisa el costo real de las primeras semanas y ajusta los límit
 - En GitHub: Actions → *Actualizar catálogo* → *Run workflow*. Modo `solo_publicar` no usa la API ni gasta.
 - En tu computador: copia `.env.example` como `.env`, pon tu clave y ejecuta `npm run actualizar`
   (o `npm run publicar`, que no necesita clave). `.env` nunca se sube a GitHub.
+
+## Avisos
+
+### De GitHub (ya funcionan)
+
+- **Pull Request nuevo:** el Action te asigna el PR, y GitHub te avisa por correo y en la campana.
+- **Fallas:** GitHub avisa cuando el Action falla. Revisa en [github.com/settings/notifications](https://github.com/settings/notifications)
+  que en *Actions* esté marcado *Email* y *Only notify for failed workflows*.
+- Las ejecuciones programadas avisan a quien modificó por última vez la línea `cron` del workflow.
+  Si no te llegan, cambia tú esa línea una vez (por ejemplo, la hora) y haz commit.
+
+### Por correo con Resend (opcional)
+
+Al terminar cada ejecución semanal o manual te envía un resumen: productos que se agregan y se quitan,
+propuestas nuevas, avisos, el enlace al PR y el costo estimado. Si la ejecución falla, avisa con el enlace
+al detalle. No envía nada si no hubo cambios ni por tus propias ediciones en el PR.
+
+Queda **desactivado** mientras no exista el secreto `RESEND_API_KEY`. Para activarlo:
+
+1. Crea una cuenta en [resend.com](https://resend.com) y una API key (permiso *Sending access*).
+2. En GitHub, Settings → Secrets and variables → Actions → *New repository secret*:
+   - `RESEND_API_KEY`: la clave de Resend.
+   - `CORREO_AVISOS`: tu correo (varios, separados por coma).
+3. Sin dominio propio, Resend envía desde `onboarding@resend.dev` y **solo** al correo de tu cuenta de Resend.
+   Si verificas un dominio en Resend, crea la variable `CORREO_REMITENTE`, por ejemplo
+   `MejorCompra <avisos@tu-dominio.com>`.
 
 ## Conectar la API de Amazon (más adelante)
 
