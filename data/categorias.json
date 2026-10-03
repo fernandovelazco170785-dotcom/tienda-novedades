@@ -1,0 +1,22 @@
+[
+  {
+    "slug": "componentes",
+    "nombre": "Componentes",
+    "descripcion": "Procesadores, memoria RAM y otras piezas para armar o mejorar tu PC."
+  },
+  {
+    "slug": "perifericos",
+    "nombre": "Periféricos",
+    "descripcion": "Teclados, mouse y accesorios para trabajar y jugar con más comodidad."
+  },
+  {
+    "slug": "monitores",
+    "nombre": "Monitores",
+    "descripcion": "Monitores de escritorio y portátiles para sumar pantalla donde la necesites."
+  },
+  {
+    "slug": "almacenamiento",
+    "nombre": "Almacenamiento",
+    "descripcion": "Memorias USB, discos y unidades para guardar y respaldar tus archivos."
+  }
+]

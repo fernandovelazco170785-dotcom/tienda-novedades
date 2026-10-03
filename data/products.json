@@ -1,0 +1,101 @@
+[
+  {
+    "id": "amd-ryzen-5-9600x",
+    "asin": "B0D6NN6TM7",
+    "titulo": "Procesador AMD Ryzen 5 9600X, 6 núcleos y 12 hilos, desbloqueado",
+    "categoria": "componentes",
+    "descripcion_corta": "Arquitectura Zen 5 con 5,4 GHz y plataforma AM5, que admite DDR5 y PCIe 5.0. Al ser socket nuevo, permite cambiar solo el procesador dentro de unos años sin botar la placa.",
+    "imagen": "https://m.media-amazon.com/images/I/61piWP2l0GL._AC_SL1500_.jpg",
+    "url_afiliado": "https://www.amazon.com/dp/B0D6NN6TM7?tag=tiendanovedad-20",
+    "destacado": true,
+    "fecha_agregado": "2026-08-23"
+  },
+  {
+    "id": "intel-core-ultra-5-225f",
+    "asin": "",
+    "titulo": "Procesador Intel Core Ultra 5 225F, 10 núcleos (6P + 4E), hasta 4,9 GHz",
+    "categoria": "componentes",
+    "descripcion_corta": "Reparte el trabajo entre núcleos de rendimiento y de eficiencia, así que rinde bien con varias aplicaciones abiertas a la vez. La terminación F significa que no trae video integrado: necesitas tarjeta gráfica aparte.",
+    "imagen": "https://m.media-amazon.com/images/I/616wIeBa-HL._AC_SL1500_.jpg",
+    "url_afiliado": "https://amzn.to/4zAL2FI",
+    "destacado": false,
+    "fecha_agregado": "2026-08-23"
+  },
+  {
+    "id": "ram-gigastone-game-pro-32gb-ddr4-3200",
+    "asin": "",
+    "titulo": "Memoria RAM Gigastone Game PRO 32 GB (2x16 GB) DDR4 3200 MHz CL16",
+    "categoria": "componentes",
+    "descripcion_corta": "Kit de dos módulos para trabajar en doble canal, con perfil XMP 2.0 que activa los 3200 MHz desde la BIOS sin configurar a mano. Verifica antes que tu placa sea DDR4, porque no es compatible con DDR5.",
+    "imagen": "https://m.media-amazon.com/images/I/51BM392zpdL._AC_SL1000_.jpg",
+    "url_afiliado": "https://amzn.to/4xnaQDU",
+    "destacado": true,
+    "fecha_agregado": "2026-08-23"
+  },
+  {
+    "id": "teclado-aula-f75-pro",
+    "asin": "",
+    "titulo": "Teclado mecánico inalámbrico AULA F75 Pro, 75%, RGB, hot-swap",
+    "categoria": "perifericos",
+    "descripcion_corta": "Los interruptores se cambian sin soldar, así que puedes ajustar el tacto sin comprar otro teclado. Formato 75% que ahorra escritorio, con tres modos de conexión: cable, 2,4 GHz y Bluetooth.",
+    "imagen": "https://m.media-amazon.com/images/I/61MC8BK0w0L._AC_SL1500_.jpg",
+    "url_afiliado": "https://amzn.to/4y3te4F",
+    "destacado": false,
+    "fecha_agregado": "2026-08-23"
+  },
+  {
+    "id": "mouse-razer-viper-v3-pro",
+    "asin": "",
+    "titulo": "Mouse gamer inalámbrico Razer Viper V3 Pro, 54 g, 8000 Hz",
+    "categoria": "perifericos",
+    "descripcion_corta": "54 gramos y 95 horas de batería: la ligereza se nota en sesiones largas, y no depende de estar cargándolo cada día. Sensor de 35.000 DPI e interruptores ópticos, que no sufren el doble clic de los mecánicos.",
+    "imagen": "https://m.media-amazon.com/images/I/61BJ2MpgTTL._AC_SL1500_.jpg",
+    "url_afiliado": "https://amzn.to/45KAQNb",
+    "destacado": true,
+    "fecha_agregado": "2026-08-23"
+  },
+  {
+    "id": "monitor-portatil-aoc-16t20",
+    "asin": "",
+    "titulo": "Monitor portátil AOC 16T20 de 15,6\" FHD, USB-C, IPS ultradelgado",
+    "categoria": "monitores",
+    "descripcion_corta": "Segunda pantalla que se conecta con un solo cable USB-C y pesa poco. Es una de las formas más económicas de trabajar con dos pantallas fuera del escritorio.",
+    "imagen": "https://m.media-amazon.com/images/I/61mqQ3Qp2DL._AC_SL1500_.jpg",
+    "url_afiliado": "https://amzn.to/4xjGP7Z",
+    "destacado": true,
+    "fecha_agregado": "2026-08-23"
+  },
+  {
+    "id": "monitor-portatil-asus-zenscreen-mb16ahv",
+    "asin": "",
+    "titulo": "Monitor portátil ASUS ZenScreen MB16AHV de 15,6\" 1080p con funda",
+    "categoria": "monitores",
+    "descripcion_corta": "Trae soporte plegable, funda protectora y filtro de luz azul, pensado para moverlo a diario. Cuesta más que otros monitores portátiles, pero el acabado y el soporte propio se notan si vas a viajar con él.",
+    "imagen": "https://m.media-amazon.com/images/I/614tktFtFZL._AC_SL1500_.jpg",
+    "url_afiliado": "https://amzn.to/4ghJV6o",
+    "destacado": true,
+    "fecha_agregado": "2026-08-23"
+  },
+  {
+    "id": "usb-pny-turbo-attache-3-128gb-pack-5",
+    "asin": "",
+    "titulo": "Memorias USB 3.0 PNY Turbo Attaché 3 de 128 GB, paquete de 5",
+    "categoria": "almacenamiento",
+    "descripcion_corta": "Cinco memorias de 128 GB con USB 3.0: en paquete, cada unidad suele salir bastante más barata que comprarla suelta. El collar deslizante evita perder la tapa, que es como terminan la mayoría.",
+    "imagen": "https://m.media-amazon.com/images/I/6155RbbYkAL._AC_SL1000_.jpg",
+    "url_afiliado": "https://amzn.to/4wPbk4h",
+    "destacado": true,
+    "fecha_agregado": "2026-08-23"
+  },
+  {
+    "id": "usb-pny-attache-3-16gb-pack-10",
+    "asin": "",
+    "titulo": "Memorias USB 2.0 PNY Attaché 3 de 16 GB, paquete de 10",
+    "categoria": "almacenamiento",
+    "descripcion_corta": "Diez unidades para repartir entre trabajo, clases y respaldos sueltos. Son USB 2.0, así que sirven para documentos, no para mover archivos pesados.",
+    "imagen": "https://m.media-amazon.com/images/I/812b8wIcqWL._AC_SL1500_.jpg",
+    "url_afiliado": "https://amzn.to/4qAGhrC",
+    "destacado": true,
+    "fecha_agregado": "2026-08-23"
+  }
+]
