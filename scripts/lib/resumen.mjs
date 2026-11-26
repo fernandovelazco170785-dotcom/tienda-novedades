@@ -70,11 +70,12 @@ export function resumenMarkdown(r) {
 
   l.push(
     '',
-    '### Cómo revisar',
-    '1. **Publicar una propuesta:** en `data/pendientes.json`, pega el enlace de SiteStripe en `url_afiliado` (y si quieres, la URL de la foto en `imagen`). Al guardar en esta rama, un proceso automático la mueve a `products.json`.',
+    '### Qué sigue',
+    'Este PR se mergea solo si pasan `npm test` y `npm run build`. Las propuestas quedan en `data/pendientes.json` y no aparecen en la web hasta que tengan tu enlace.',
+    '1. **Publicar una propuesta:** edita `data/pendientes.json` en `main` y pega el enlace de SiteStripe en `url_afiliado` (y si quieres, la URL de la foto en `imagen`). Al guardar, un proceso automático la mueve a `products.json` y la publica.',
     '2. **Descartarla:** cambia `"estado": "pendiente"` por `"estado": "descartado"`. No se volverá a proponer.',
     '3. **Dejarla para después:** no hagas nada; se queda en pendientes y no aparece en la web.',
-    '4. Revisa la vista previa de Vercel y haz **merge**.',
+    '4. Si este PR quedó abierto (por ejemplo, porque `main` cambió durante la ejecución), revisa la vista previa de Vercel y haz **merge** a mano.',
   );
 
   if (r.consumo) {

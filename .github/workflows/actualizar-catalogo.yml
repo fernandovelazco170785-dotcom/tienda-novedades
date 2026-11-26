@@ -1,13 +1,14 @@
-# Actualiza data/*.json y abre un Pull Request para que lo apruebes. Nada se publica sin tu merge.
+# Actualiza data/*.json, abre un Pull Request y lo mergea solo si pasan npm test y npm run build.
 #
 # Cuándo corre:
 #   • Cada lunes (schedule): publica pendientes con enlace y pide propuestas nuevas a Claude.
-#   • A mano (Actions → Actualizar catálogo → Run workflow): eliges "completo" o "solo_publicar" (sin costo).
-#   • Cuando editas data/pendientes.json dentro del PR del bot: mueve a products.json los que ya
-#     tienen enlace, en el mismo PR (sin costo).
+#   • A mano (Actions → Actualizar catálogo → Run workflow): "completo" o "solo_publicar" (sin costo).
+#   • Cuando editas data/pendientes.json en main (o en la rama del bot): publica los que ya tienen
+#     enlace de afiliado, sin usar la API.
 #
-# Mientras el PR del bot esté abierto, cada ejecución suma cambios a ese mismo PR (no pisa tus ediciones).
-# Si lo cierras sin merge, la siguiente ejecución empieza de cero desde main.
+# El merge automático solo ocurre si main no cambió durante la ejecución, para que lo que se publica
+# sea exactamente lo que se probó. Si no se puede mergear, el PR queda abierto: las ejecuciones
+# siguientes suman sus cambios a ese mismo PR sin pisar tus ediciones.
 #
 # Avisos: GitHub te notifica del PR (te lo asigna) y de las fallas. El correo con Resend es opcional
 # y queda desactivado mientras no exista el secreto RESEND_API_KEY.
@@ -25,16 +26,16 @@ on:
         options: [completo, solo_publicar]
         default: completo
   push:
-    branches: [bot/actualizacion-catalogo]
+    branches: [main, bot/actualizacion-catalogo]
     paths: [data/pendientes.json]
 
 permissions:
   contents: write
   pull-requests: write
 
-# Una ejecución a la vez, para que no se pisen.
+# Compartido con "Generar guías de compra": los dos workflows mergean a main, así que nunca corren a la vez.
 concurrency:
-  group: actualizar-catalogo
+  group: tienda-bot
   cancel-in-progress: false
 
 env:
@@ -66,14 +67,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           EVENTO: ${{ github.event_name }}
+          REF: ${{ github.ref_name }}
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          if [ "$EVENTO" = "push" ]; then
-            # Editaste pendientes.json en la rama del bot: se trabaja sobre esa misma rama.
-            echo "PR_ABIERTO=si" >> "$GITHUB_ENV"
-          elif [ "$(gh pr list --head "$RAMA" --state open --json number --jq length)" != "0" ]; then
-            # Hay un PR del bot sin revisar: se suman los cambios ahí, trayendo lo nuevo de main.
+          # Siempre se trabaja sobre la última versión de main, aunque esta ejecución haya esperado en cola.
+          git fetch origin "$BASE"
+          echo "BASE_SHA=$(git rev-parse "origin/$BASE")" >> "$GITHUB_ENV"
+          if { [ "$EVENTO" = "push" ] && [ "$REF" = "$RAMA" ]; } || \
+             [ "$(gh pr list --head "$RAMA" --state open --json number --jq length)" != "0" ]; then
+            # Hay un PR del bot sin mergear (o editaste su rama): se suman los cambios ahí, con lo nuevo de main.
             git fetch origin "$RAMA"
             git checkout -B "$RAMA" "origin/$RAMA"
             if ! git merge --no-edit "origin/$BASE"; then
@@ -82,7 +85,7 @@ jobs:
             fi
             echo "PR_ABIERTO=si" >> "$GITHUB_ENV"
           else
-            git checkout -B "$RAMA"
+            git checkout -B "$RAMA" "origin/$BASE"
             echo "PR_ABIERTO=no" >> "$GITHUB_ENV"
           fi
 
@@ -103,6 +106,9 @@ jobs:
           MAX_TOKENS_EJECUCION: ${{ vars.MAX_TOKENS_EJECUCION }}
         run: node scripts/actualizar.mjs --modo "$MODO"
 
+      - name: Pruebas
+        run: npm test
+
       - name: Comprobar que la web compila
         run: npm run build
 
@@ -113,16 +119,18 @@ jobs:
           if git diff --cached --quiet; then
             echo "Sin cambios en el catálogo."
             echo "hay_cambios=no" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          git commit -m "Catálogo: actualización ($MODO) $(date -u +%F)"
-          if [ "$PR_ABIERTO" = "si" ]; then
-            git push origin "HEAD:$RAMA"
           else
+            git commit -m "Catálogo: actualización ($MODO) $(date -u +%F)"
+            echo "hay_cambios=si" >> "$GITHUB_OUTPUT"
+          fi
+          if [ "$PR_ABIERTO" = "si" ]; then
+            # Sube también el merge de main hecho arriba, aunque no haya datos nuevos: así el PR abierto
+            # queda igual a lo que se acaba de probar y el merge automático lo puede volver a intentar.
+            if [ "$(git rev-parse HEAD)" != "$(git rev-parse "origin/$RAMA")" ]; then git push origin "HEAD:$RAMA"; fi
+          elif [ "$(git rev-parse HEAD)" != "$BASE_SHA" ]; then
             # Rama nueva desde main: reemplaza lo que quedara de un PR anterior ya cerrado.
             git push --force origin "HEAD:$RAMA"
           fi
-          echo "hay_cambios=si" >> "$GITHUB_OUTPUT"
 
       - name: Abrir el Pull Request o comentar el resumen
         id: pr
@@ -141,6 +149,26 @@ jobs:
             gh pr edit "$RAMA" --add-assignee "$DUENO" || echo "::warning::No se pudo asignar el PR a $DUENO."
           fi
           echo "url=$(gh pr view "$RAMA" --json url --jq .url 2>/dev/null || true)" >> "$GITHUB_OUTPUT"
+
+      # Solo llega aquí si las pruebas y el build pasaron (cualquier paso fallido detiene el job).
+      # Para apagarlo sin tocar el código: variable MERGE_AUTOMATICO = no.
+      # También reintenta el PR que quedó abierto en una ejecución anterior.
+      - name: Merge automático
+        if: (steps.guardar.outputs.hay_cambios == 'si' || env.PR_ABIERTO == 'si') && vars.MERGE_AUTOMATICO != 'no'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$(gh pr view "$RAMA" --json state --jq .state 2>/dev/null)" != "OPEN" ]; then
+            echo "::warning::No hay un PR abierto para $RAMA; no hay nada que mergear."
+            exit 0
+          fi
+          ACTUAL="$(git ls-remote origin "refs/heads/$BASE" | cut -f1)"
+          if [ "$ACTUAL" != "$BASE_SHA" ]; then
+            echo "::warning::$BASE cambió durante la ejecución; el PR queda abierto para revisión."
+            gh pr comment "$RAMA" --body "No se hizo merge automático: \`$BASE\` cambió durante la ejecución, así que las pruebas no cubren el resultado combinado. La próxima ejecución lo vuelve a intentar; también puedes hacer merge a mano."
+            exit 0
+          fi
+          gh pr merge "$RAMA" --merge --delete-branch --match-head-commit "$(git rev-parse HEAD)"
 
       - name: Resumen de la ejecución
         if: always()
