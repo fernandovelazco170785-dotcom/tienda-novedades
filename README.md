@@ -14,10 +14,12 @@ Sitio estático hecho con [Astro](https://astro.build) y desplegado en Vercel. N
 | `src/lib/esquema.mjs` | Reglas que valida el build: si un producto está mal, el build falla y dice por qué. |
 | `src/lib/catalogo.ts` | Lee y ordena los productos para las páginas. |
 | `src/lib/proveedor.ts` | Punto para conectar la API de Amazon (foto y ranking). Hoy desactivado. |
+| `src/content/guias/` | **Guías de compra** en Markdown, una por archivo. Se publican en `/guias/<archivo>/`. |
+| `src/lib/guias-reglas.mjs` | Reglas que valida el build en cada guía (productos que existen, sin precios ni enlaces externos, largo, secciones). |
 | `scripts/actualizar.mjs` | Actualización semanal con Claude (`npm run actualizar`) y publicación de pendientes (`npm run publicar`). |
 | `.github/workflows/actualizar-catalogo.yml` | GitHub Action semanal y manual que abre el Pull Request. |
 | `scripts/enviar-correo.mjs` | Aviso opcional por correo con Resend (desactivado sin clave). |
-| `src/pages/` | Páginas: portada, categoría, producto, aviso de afiliado, 404 y `robots.txt`. |
+| `src/pages/` | Páginas: portada, categoría, producto, guías, aviso de afiliado, 404 y `robots.txt`. |
 | `src/config.ts` | Nombre del sitio y texto del aviso de afiliado. |
 | `astro.config.mjs` | URL pública del sitio (`SITE_URL`), usada en el sitemap y las URL canónicas. |
 
@@ -57,8 +59,46 @@ Requiere Node 22.12 o superior.
 npm install
 npm run dev      # http://localhost:4321
 npm run build    # genera dist/ y valida products.json
-npm test         # pruebas de las reglas (enlaces, ASIN, propuestas de Claude)
+npm test         # pruebas de las reglas (enlaces, ASIN, propuestas de Claude, guías)
 ```
+
+## Guías de compra
+
+Cada guía es un archivo Markdown en `src/content/guias/`. El nombre del archivo es la URL:
+`como-elegir-teclado-mecanico.md` se publica en `/guias/como-elegir-teclado-mecanico/`.
+Aparecen en el menú, en la portada (una por categoría), en su página de categoría y en el sitemap.
+
+```markdown
+---
+titulo: "Cómo elegir un teclado mecánico: formato, switches, conexión y la tecla ñ"
+descripcion: "Entre 70 y 160 caracteres: es la meta description."
+busqueda: "cómo elegir teclado mecánico"     # búsqueda real a la que responde (no se muestra)
+categoria: perifericos
+productos:                                 # solo ids de data/products.json, en el orden en que se muestran
+  - id: teclado-aula-f75-pro
+    motivo: "Por qué aparece en esta guía."
+faq:                                       # mínimo 3; se muestran en la página y van al schema FAQPage
+  - pregunta: "¿Pregunta?"
+    respuesta: "Respuesta."
+publicada: 2026-11-26
+actualizada: 2026-12-10                    # opcional
+---
+
+Texto de la guía en Markdown, con `## Criterios de compra` y `## Errores comunes`.
+```
+
+**El build falla** si una guía:
+
+- cita un producto que no existe en `data/products.json` (en `productos` o en un enlace `/producto/<id>/`);
+- trae enlaces externos o de Amazon, ASIN o HTML. Los productos se muestran con su tarjeta, que lleva tu enlace
+  de afiliado. Solo se permiten enlaces internos: `/producto/<id>/`, `/categoria/<slug>/`, `/guias/<id>/`;
+- escribe precios (en el texto, los motivos o las preguntas);
+- no tiene las secciones "Criterios de compra" y "Errores comunes", o usa `# ` (el título sale del frontmatter);
+- tiene menos de 1200 o más de 1800 palabras (cuerpo + preguntas frecuentes).
+
+Cada guía publica su JSON-LD `Article` y `FAQPage`, título, descripción y URL canónica.
+El script semanal **no retira productos citados en una guía**: si Claude propone retirarlo, el resumen del PR
+lo avisa para que primero lo quites de la guía.
 
 ## Actualización automática
 
