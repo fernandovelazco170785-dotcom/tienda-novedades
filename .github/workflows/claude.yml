@@ -1,0 +1,70 @@
+# Claude en GitHub: escribe @claude en un issue o en un PR y Claude trabaja en el repositorio.
+#
+# • En un issue: crea una rama claude/…, hace los cambios, corre npm test y npm run build,
+#   y abre un Pull Request hacia main para que lo revises. Nunca hace merge.
+# • En un PR: responde preguntas o sube los cambios que le pidas a la rama de ese PR.
+#
+# Solo responde a quienes tienen permiso de escritura en el repositorio (lo verifica la acción).
+# Usa el secreto ANTHROPIC_API_KEY. Requiere la GitHub App de Claude instalada en el repositorio.
+# Las reglas del proyecto que Claude sigue están en CLAUDE.md.
+
+name: Claude (@claude)
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+  issues:
+    types: [opened, assigned]
+
+jobs:
+  claude:
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+    runs-on: ubuntu-latest
+    # Tope de tiempo (y de gasto) por pedido.
+    timeout-minutes: 30
+    # Un pedido a la vez por issue o PR; los siguientes esperan su turno.
+    concurrency:
+      group: claude-${{ github.event.issue.number || github.event.pull_request.number }}
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write # para obtener el token de la GitHub App de Claude
+      actions: read # para que pueda leer los resultados de los workflows
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+
+      - name: Preparar Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Claude
+        uses: anthropics/claude-code-action@4411a9e9b0283becf4b924f7bce360fd7756c78c # v1.0.290
+        env:
+          ASTRO_TELEMETRY_DISABLED: '1'
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --model claude-opus-5-5
+            --max-turns 40
+            --allowedTools "Bash(npm ci),Bash(npm test),Bash(npm run build),Bash(gh pr create:*)"
+            --append-system-prompt "Responde siempre en español latino. Sigue CLAUDE.md y las reglas del README. Antes de terminar, ejecuta npm test y npm run build y corrige lo que falle. Si te llamaron desde un issue y subiste cambios, abre tú el pull request hacia main con gh pr create, con título y descripción en español que incluyan Closes seguido del número del issue, y pon el enlace del PR en tu comentario. Si te llamaron desde un PR, sube los cambios a la rama de ese PR. Nunca hagas merge."

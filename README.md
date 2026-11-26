@@ -22,6 +22,8 @@ Sitio estático hecho con [Astro](https://astro.build) y desplegado en Vercel. N
 | `src/pages/` | Páginas: portada, categoría, producto, guías, aviso de afiliado, 404 y `robots.txt`. |
 | `src/config.ts` | Nombre del sitio y texto del aviso de afiliado. |
 | `astro.config.mjs` | URL pública del sitio (`SITE_URL`), usada en el sitemap y las URL canónicas. |
+| `.github/workflows/claude.yml` | Claude en GitHub: responde cuando escribes `@claude` en un issue o PR. |
+| `CLAUDE.md` | Reglas del proyecto que Claude sigue cuando trabaja en el repositorio. |
 
 ## Formato de un producto
 
@@ -180,6 +182,22 @@ Queda **desactivado** mientras no exista el secreto `RESEND_API_KEY`. Para activ
 3. Sin dominio propio, Resend envía desde `onboarding@resend.dev` y **solo** al correo de tu cuenta de Resend.
    Si verificas un dominio en Resend, crea la variable `CORREO_REMITENTE`, por ejemplo
    `MejorCompra <avisos@tu-dominio.com>`.
+
+## Claude en GitHub (@claude)
+
+Escribe `@claude` en un issue o en un Pull Request y Claude trabaja en el repositorio con el modelo Opus,
+usando el secreto `ANTHROPIC_API_KEY`. Solo responde a quienes tienen permiso de escritura en el repo.
+
+- **En un issue:** describe lo que quieres y menciona a `@claude` (en el texto del issue o en un comentario).
+  Claude crea una rama `claude/…`, hace los cambios, corre `npm test` y `npm run build`, y abre un Pull Request
+  hacia `main`. Tú revisas la vista previa de Vercel y haces merge.
+- **En un Pull Request:** comenta `@claude` con lo que quieres cambiar o preguntar. Sube los cambios a la
+  rama de ese PR.
+- Mientras trabaja, actualiza un comentario con su avance. Cada pedido tiene un tope de 30 minutos y 40 turnos.
+- Sigue las reglas de `CLAUDE.md` (sin precios, solo enlaces permitidos, nunca inventa ASIN ni enlaces).
+
+**Una sola vez:** instala la [GitHub App de Claude](https://github.com/apps/claude) en este repositorio.
+La acción la necesita para comentar, subir ramas y abrir el PR.
 
 ## Conectar la API de Amazon (más adelante)
 
