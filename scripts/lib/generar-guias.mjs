@@ -67,7 +67,7 @@ export function herramientaGuia(idsProductos) {
   };
 }
 
-export const SISTEMA_GUIAS = `Eres el editor de MejorCompra, una web en español que recomienda componentes y periféricos de PC y enlaza a amazon.com como afiliada. Escribes guías de compra que responden búsquedas reales de personas de Latinoamérica. El dueño revisa cada guía antes de publicarla.
+export const SISTEMA_GUIAS = `Eres el editor de MejorCompra, una web en español que recomienda componentes y periféricos de PC y enlaza a amazon.com como afiliada. Escribes guías de compra que responden búsquedas reales de personas de Latinoamérica. Las guías que pasan las validaciones se publican solas y el dueño las revisa después, así que cada dato técnico tiene que estar verificado.
 
 Cómo trabajar:
 - Usa la búsqueda web para confirmar que la búsqueda que elegiste es real (hay artículos que la responden) y para verificar los datos técnicos de los productos que cites. Si un dato no se puede confirmar, no lo escribas. No des porcentajes de rendimiento salvo que varias fuentes coincidan.
@@ -108,6 +108,35 @@ export function planificarTemas(texto, cantidad) {
 const resumenGuia = (g) => `${g.id}: ${g.data?.titulo ?? '(sin título)'} · búsqueda: "${g.data?.busqueda ?? ''}" (${g.data?.categoria ?? '?'})`;
 
 /**
+ * Cuántas guías citan cada producto.
+ * @param {GuiaCruda[]} guias
+ * @returns {Map<string, number>}
+ */
+export function citasPorProducto(guias) {
+  /** @type {Map<string, number>} */
+  const citas = new Map();
+  for (const g of guias) {
+    for (const p of g.data?.productos ?? []) {
+      if (typeof p?.id === 'string') citas.set(p.id, (citas.get(p.id) ?? 0) + 1);
+    }
+  }
+  return citas;
+}
+
+/**
+ * Categoría del día para el horario diario: rota en orden, un día cada una.
+ * @param {Categoria[]} categorias solo las que tienen productos
+ * @param {string} hoy AAAA-MM-DD
+ */
+export function categoriaDelDia(categorias, hoy) {
+  const dia = Math.floor(Date.parse(`${hoy}T00:00:00Z`) / 86_400_000);
+  return categorias[dia % categorias.length];
+}
+
+/** @param {number} n */
+const guiasTexto = (n) => `${n} ${n === 1 ? 'guía' : 'guías'}`;
+
+/**
  * Mensaje con todo el contexto para una guía.
  * @param {object} p
  * @param {Categoria} p.categoria
@@ -120,15 +149,27 @@ const resumenGuia = (g) => `${g.id}: ${g.data?.titulo ?? '(sin título)'} · bú
  */
 export function mensajeGuia({ categoria, productos, existentes, generadas, tema, ejemplo, hoy }) {
   const lista = (/** @type {string[]} */ l) => (l.length ? l.map((x) => `- ${x}`).join('\n') : '- (ninguna)');
+  const citas = citasPorProducto([...existentes, ...generadas]);
+  const n = (/** @type {string} */ id) => citas.get(id) ?? 0;
+  // Los productos de la categoría con menos guías van primero; son los que más necesitan una.
+  const deLaCategoria = productos.filter((p) => p.categoria === categoria.slug).sort((a, b) => n(a.id) - n(b.id));
+  const minimo = deLaCategoria.length ? n(deLaCategoria[0].id) : 0;
+  const menosCitados = deLaCategoria.filter((p) => n(p.id) === minimo);
+
   const pedido = tema
     ? `Tema pedido por el dueño: «${tema}». Escribe la guía sobre ese tema, enfocada en la búsqueda real más cercana.`
-    : 'Elige tú el tema: una búsqueda real y frecuente en español sobre esta categoría, que no repita las guías existentes y que se pueda ilustrar con productos del catálogo.';
+    : `Elige tú el tema: una búsqueda real y frecuente en español sobre esta categoría, que no repita las guías existentes y que se pueda ilustrar con productos del catálogo.
+Prioriza los productos con menos guías: elige un tema en el que encaje de forma natural al menos uno de estos, los menos citados de la categoría (${guiasTexto(minimo)} cada uno): ${menosCitados.map((p) => p.id).join(', ')}.`;
   return `Fecha de hoy: ${hoy}
 Categoría pedida: ${categoria.nombre} (slug: ${categoria.slug}). ${categoria.descripcion}
 ${pedido}
 
-Catálogo publicado (id — título [categoría]: descripción):
-${lista(productos.map((p) => `${p.id} — ${p.titulo} [${p.categoria}]: ${p.descripcion_corta}`))}
+Catálogo publicado (id — título [categoría] (guías que ya lo citan): descripción). Primero los de la categoría pedida, de menos a más citados:
+${lista(
+  [...deLaCategoria, ...productos.filter((p) => p.categoria !== categoria.slug)].map(
+    (p) => `${p.id} — ${p.titulo} [${p.categoria}] (${guiasTexto(n(p.id))}): ${p.descripcion_corta}`,
+  ),
+)}
 
 Guías existentes (no repitas su tema ni su búsqueda):
 ${lista([...existentes, ...generadas].map(resumenGuia))}
@@ -312,10 +353,10 @@ export function resumenGeneracion(r) {
   }
   l.push(
     '',
-    '### Cómo revisar',
-    '1. Lee cada guía en la vista previa de Vercel, en `/guias/<id>/`.',
-    '2. Revisa los datos técnicos: Claude los verificó con búsquedas web, pero puede equivocarse.',
-    '3. Si algo no te convence, edita el `.md` en este PR o ciérralo sin merge.',
+    '### Qué sigue',
+    '1. Este PR se mergea solo si pasan `npm test` y `npm run build`; cada guía queda publicada en `/guias/<id>/`.',
+    '2. Revisa los datos técnicos cuando puedas: Claude los verificó con búsquedas web, pero puede equivocarse.',
+    '3. Si algo no te convence, edita o borra el `.md` en `src/content/guias/` de `main`. Si el PR quedó abierto, edítalo aquí o ciérralo sin merge.',
     '',
     '<details><summary>Consumo de la API</summary>',
     '',

@@ -16,7 +16,10 @@ import { leerGuias } from '../lib/guias.mjs';
 import {
   aMarkdown,
   armarGuia,
+  categoriaDelDia,
+  citasPorProducto,
   generarGuia,
+  mensajeGuia,
   planificarTemas,
   problemasDeGuiaNueva,
   resumenGeneracion,
@@ -221,7 +224,8 @@ test('el script semanal sigue igual tras compartir la conversación con el gener
   assert.equal(cliente.llamadas[1].messages.at(-1).role, 'assistant'); // reanuda la pausa sin agregar texto
 });
 
-test('el CLI genera la guía, la escribe y deja el resumen con el costo', async () => {
+/** Corre el CLI contra un servidor local que imita la API y siempre entrega `entradaValida()`. */
+async function correrCli(args, fecha = HOY) {
   const dir = mkdtempSync(join(tmpdir(), 'guias-'));
   const guias = join(dir, 'guias');
   cpSync('src/content/guias', guias, { recursive: true });
@@ -243,18 +247,31 @@ test('el CLI genera la guía, la escribe y deja el resumen con el costo', async 
     NO_PROXY: '127.0.0.1',
     GUIAS_DIR: guias,
     RESUMEN_DIR: join(dir, 'tmp'),
-    FECHA_HOY: HOY,
+    FECHA_HOY: fecha,
   };
   try {
-    await ejecutar(process.execPath, ['scripts/generar-guias.mjs', '--categoria', 'perifericos', '--cantidad', '1'], { env });
+    const { stdout } = await ejecutar(process.execPath, ['scripts/generar-guias.mjs', ...args], { env });
+    return { dir, guias, peticiones, stdout };
   } finally {
     servidor.close();
   }
+}
+
+test('el CLI genera la guía, la escribe y deja el resumen con el costo', async () => {
+  const { dir, guias, peticiones } = await correrCli(['--categoria', 'perifericos', '--cantidad', '1']);
   assert.equal(peticiones.length, 1);
   assert.ok(existsSync(join(guias, 'como-elegir-mousepad-gamer.md')));
   const nueva = (await leerGuias(guias)).find((g) => g.id === 'como-elegir-mousepad-gamer');
   assert.equal(nueva.data.categoria, 'perifericos');
   assert.match(readFileSync(join(dir, 'tmp', 'resumen-guias.md'), 'utf8'), /costo estimado: US\$ \d+\.\d{2}/);
+});
+
+test('con --categoria auto (horario diario) usa la categoría del día', async () => {
+  // 2026-11-28 le toca a periféricos en la rotación (ver la prueba de categoriaDelDia).
+  const { dir, peticiones, stdout } = await correrCli(['--categoria', 'auto', '--cantidad', '1'], '2026-11-28');
+  assert.match(stdout, /Categoría: perifericos \(rotación diaria\)/);
+  assert.match(peticiones[0].messages[0].content, /slug: perifericos/);
+  assert.equal(JSON.parse(readFileSync(join(dir, 'tmp', 'resumen-guias.json'), 'utf8')).categoria, 'perifericos');
 });
 
 test('el CLI falla con un mensaje claro sin clave o con datos inválidos', async () => {
@@ -306,4 +323,80 @@ test('una respuesta cortada por el tope de tokens no se acepta como guía', asyn
   assert.equal(r.guia, null);
   assert.match(r.aviso, /MAX_TOKENS_RESPUESTA/);
   assert.equal(cliente.llamadas.length, 1);
+});
+
+test('la categoría del horario diario rota un día cada una, sin saltarse ninguna', () => {
+  const conProductos = categorias.filter((c) => productos.some((p) => p.categoria === c.slug));
+  const dias = ['2026-11-27', '2026-11-28', '2026-11-29', '2026-11-30', '2026-12-01'];
+  const elegidas = dias.map((d) => categoriaDelDia(conProductos, d).slug);
+  assert.deepEqual(elegidas, ['componentes', 'perifericos', 'monitores', 'almacenamiento', 'componentes']);
+  assert.equal(new Set(elegidas.slice(0, conProductos.length)).size, conProductos.length);
+});
+
+test('pide priorizar los productos de la categoría con menos guías', async () => {
+  const ctx = await contexto();
+  const citas = citasPorProducto(ctx.existentes);
+  const deLaCategoria = productos.filter((p) => p.categoria === categoria.slug);
+  const minimo = Math.min(...deLaCategoria.map((p) => citas.get(p.id) ?? 0));
+  const menos = deLaCategoria.filter((p) => (citas.get(p.id) ?? 0) === minimo).map((p) => p.id);
+  const mas = deLaCategoria.filter((p) => (citas.get(p.id) ?? 0) > minimo).map((p) => p.id);
+
+  const texto = mensajeGuia(ctx);
+  const prioriza = texto.split('\n').find((l) => l.startsWith('Prioriza'));
+  assert.ok(prioriza, 'sin tema pedido, el mensaje debe pedir priorizar');
+  for (const id of menos) assert.ok(prioriza.includes(id), `${id} es de los menos citados`);
+  for (const id of mas) assert.ok(!prioriza.includes(id), `${id} ya tiene más guías`);
+
+  // En el catálogo del mensaje, los de la categoría van primero y de menos a más citados.
+  const orden = texto
+    .split('\n')
+    .filter((l) => l.startsWith('- ') && l.includes(' — '))
+    .map((l) => l.slice(2, l.indexOf(' — ')));
+  const primeros = orden.slice(0, deLaCategoria.length);
+  assert.deepEqual(new Set(primeros), new Set(deLaCategoria.map((p) => p.id)));
+  const n = primeros.map((id) => citas.get(id) ?? 0);
+  assert.deepEqual(n, [...n].sort((a, b) => a - b));
+
+  // Las guías generadas en la misma ejecución también cuentan.
+  const sinGuias = { ...ctx, existentes: [] };
+  const prioridad = (c) => mensajeGuia(c).split('\n').find((l) => l.startsWith('Prioriza'));
+  assert.match(prioridad(sinGuias), /\(0 guías cada uno\): teclado-aula-f75-pro, mouse-razer-viper-v3-pro\.$/);
+  const conUna = { ...sinGuias, generadas: [armarGuia(entradaValida(), categoria, HOY)] }; // cita el mouse
+  assert.match(prioridad(conUna), /\(0 guías cada uno\): teclado-aula-f75-pro\.$/);
+
+  // Con un tema pedido por el dueño, no se le impone otro.
+  assert.ok(!mensajeGuia({ ...ctx, tema: 'mousepad gamer' }).includes('Prioriza'));
+});
+
+const pasos = (archivo, job) => {
+  const flujo = yaml.load(readFileSync(`.github/workflows/${archivo}`, 'utf8'));
+  return { flujo, pasos: flujo.jobs[job].steps };
+};
+
+test('los dos bots mergean solo después de npm test y npm run build, sin pisarse', () => {
+  const guias = pasos('generar-guias.yml', 'generar');
+  const catalogo = pasos('actualizar-catalogo.yml', 'actualizar');
+  for (const { flujo, pasos: lista } of [guias, catalogo]) {
+    const i = (nombre) => lista.findIndex((p) => p.name === nombre);
+    const merge = lista[i('Merge automático')];
+    assert.ok(i('Pruebas') >= 0 && i('Comprobar que la web compila') >= 0 && merge);
+    assert.equal(lista[i('Pruebas')].run, 'npm test');
+    assert.equal(lista[i('Comprobar que la web compila')].run, 'npm run build');
+    assert.ok(i('Pruebas') < i('Merge automático') && i('Comprobar que la web compila') < i('Merge automático'));
+    // Sin always()/failure(): si una prueba o el build fallan, el paso no corre.
+    assert.doesNotMatch(String(merge.if ?? ''), /always|failure|cancelled/);
+    for (const p of lista.slice(0, i('Merge automático'))) assert.ok(!p['continue-on-error'], `${p.name} no debe ignorar fallas`);
+    assert.match(merge.run, /--match-head-commit/);
+    assert.match(merge.run, /BASE_SHA/);
+    assert.equal(flujo.concurrency.group, 'tienda-bot');
+    assert.equal(flujo.concurrency['cancel-in-progress'], false);
+  }
+});
+
+test('el horario diario corre a las 6:00 de Lima y genera 2 guías de la categoría del día', () => {
+  const { flujo, pasos: lista } = pasos('generar-guias.yml', 'generar');
+  assert.deepEqual(flujo.on.schedule, [{ cron: '0 11 * * *' }]); // Lima es UTC-5 todo el año
+  const generar = lista.find((p) => p.name === 'Generar guías con Claude');
+  assert.equal(generar.env.CATEGORIA, "${{ inputs.categoria || 'auto' }}");
+  assert.equal(generar.env.CANTIDAD, "${{ inputs.cantidad || '2' }}");
 });
