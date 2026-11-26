@@ -1,1 +1,91 @@
-[]
+[
+  {
+    "id": "monitor-benq-gw2486tc",
+    "estado": "pendiente",
+    "url_afiliado": "",
+    "imagen": "",
+    "titulo": "Monitor BenQ GW2486TC de 23,8\" Full HD IPS, 100 Hz, USB-C y soporte ajustable",
+    "categoria": "monitores",
+    "descripcion_corta": "Es una buena segunda pantalla para tu portátil: con un solo cable USB-C recibes imagen y carga, y además tiene altavoces y soporte ergonómico. Es 1080p, así que sirve para ofimática y no para edición exigente.",
+    "destacado": false,
+    "asin": "",
+    "buscar_en_amazon": "BenQ GW2486TC",
+    "motivo": "TechRadar y PCMag lo eligen este año como el mejor monitor económico para teletrabajo, y completa los dos portátiles actuales con una opción de escritorio.",
+    "fuentes": [
+      "https://www.techradar.com/news/computing-components/peripherals/best-monitor-9-reviewed-and-rated-1058662",
+      "https://tech.yahoo.com/computing/articles/best-monitors-2026-200000688.html"
+    ],
+    "fecha_propuesta": "2026-11-26"
+  },
+  {
+    "id": "monitor-gamer-aoc-q27g3xmn",
+    "estado": "pendiente",
+    "url_afiliado": "",
+    "imagen": "",
+    "titulo": "Monitor gamer AOC Q27G3XMN de 27\" QHD, 180 Hz, Mini LED con HDR",
+    "categoria": "monitores",
+    "descripcion_corta": "Te ofrece 1440p, 180 Hz y retroiluminación Mini LED con atenuación local, así que el HDR se nota de verdad en juegos y películas. El panel es VA y no trae USB-C: se conecta por HDMI o DisplayPort.",
+    "destacado": false,
+    "asin": "",
+    "buscar_en_amazon": "AOC Q27G3XMN",
+    "motivo": "RTINGS lo sigue incluyendo en su lista de mejores monitores de esta temporada como la opción de buena relación calidad-precio, y la categoría no tiene ningún monitor para juegos.",
+    "fuentes": [
+      "https://www.rtings.com/monitor/reviews/best/monitors"
+    ],
+    "fecha_propuesta": "2026-11-26"
+  },
+  {
+    "id": "ssd-portatil-samsung-p9-usb4",
+    "estado": "pendiente",
+    "url_afiliado": "",
+    "imagen": "",
+    "titulo": "SSD portátil Samsung Portable SSD P9, USB4, hasta 4.000 MB/s, de 1 a 8 TB",
+    "categoria": "almacenamiento",
+    "descripcion_corta": "Si tu equipo tiene puerto USB4 o Thunderbolt, llega hasta 4.000 MB/s de lectura, ideal para editar video o mover proyectos grandes. En puertos USB 3.2 funciona, pero bastante más lento, así que revisa tu PC antes.",
+    "destacado": false,
+    "asin": "",
+    "buscar_en_amazon": "Samsung Portable SSD P9 USB4",
+    "motivo": "Novedad de otoño de 2026: StorageReview la sumó a su ranking en octubre y shattered.io la elige como la portátil más rápida del momento.",
+    "fuentes": [
+      "https://www.storagereview.com/best/portable-ssds",
+      "https://shattered.io/best-portable-ssd-usb4-vs-usb-3-2-2026/",
+      "https://dongknows.com/best-portable-ssds/"
+    ],
+    "fecha_propuesta": "2026-11-26"
+  },
+  {
+    "id": "ssd-portatil-samsung-t9",
+    "estado": "pendiente",
+    "url_afiliado": "",
+    "imagen": "",
+    "titulo": "SSD portátil Samsung T9, USB 3.2 Gen 2x2, 2.000 MB/s, resistente a caídas",
+    "categoria": "almacenamiento",
+    "descripcion_corta": "Alcanza 2.000 MB/s de lectura y escritura en puertos USB 3.2 Gen 2x2 (20 Gbps) y aguanta caídas de unos 3 metros. Si tu PC solo tiene USB 3.2 Gen 2, rendirá cerca de la mitad; verifica el puerto.",
+    "destacado": false,
+    "asin": "",
+    "buscar_en_amazon": "Samsung T9 Portable SSD",
+    "motivo": "Producto estrella vigente: varias guías de 2026 aún lo recomiendan como la mejor opción para equipos sin USB4, y se consigue fácilmente en varias capacidades.",
+    "fuentes": [
+      "https://www.storagereview.com/best/portable-ssds",
+      "https://shattered.io/best-portable-ssd-usb4-vs-usb-3-2-2026/"
+    ],
+    "fecha_propuesta": "2026-11-26"
+  },
+  {
+    "id": "cpu-amd-ryzen-7-9850x3d",
+    "estado": "pendiente",
+    "url_afiliado": "",
+    "imagen": "",
+    "titulo": "Procesador AMD Ryzen 7 9850X3D, 8 núcleos y 16 hilos, 3D V-Cache, AM5",
+    "categoria": "componentes",
+    "descripcion_corta": "Pensado para quien arma un PC para jugar: la caché 3D V-Cache le da de los mejores FPS en juegos y usa la plataforma AM5 con DDR5. No trae disipador, así que súmale uno de torre o una refrigeración líquida.",
+    "destacado": false,
+    "asin": "",
+    "buscar_en_amazon": "AMD Ryzen 7 9850X3D",
+    "motivo": "Es la versión con más frecuencia del 9800X3D y sigue arriba en las pruebas de juegos; el catálogo no tiene ningún procesador de gama alta para gaming.",
+    "fuentes": [
+      "https://gamersnexus.net/cpus/amd-ryzen-7-9850x3d-cpu-review-benchmarks-gaming-power-thermals-ft-ddr5-4800"
+    ],
+    "fecha_propuesta": "2026-11-26"
+  }
+]
