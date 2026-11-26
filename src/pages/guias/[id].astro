@@ -1,0 +1,261 @@
+---
+import { render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Migas from '../../components/Migas.astro';
+import TarjetaProducto from '../../components/TarjetaProducto.astro';
+import TarjetaGuia from '../../components/TarjetaGuia.astro';
+import { SITIO, AVISO_AFILIADO } from '../../config';
+import { imagenConTamano, imagenDe, urlCategoria } from '../../lib/catalogo';
+import {
+  fechaIso,
+  fechaLegible,
+  guiasDeCategoria,
+  jsonLdDeGuia,
+  minutosDeLectura,
+  productosDeGuia,
+  todasLasGuias,
+  type Guia,
+} from '../../lib/guias';
+import categorias from '../../../data/categorias.json';
+
+export function getStaticPaths() {
+  return todasLasGuias().map((guia) => ({ params: { id: guia.id }, props: { guia } }));
+}
+
+interface Props {
+  guia: Guia;
+}
+
+const { guia } = Astro.props;
+const { data } = guia;
+const { Content, headings } = await render(guia);
+const categoria = categorias.find((c) => c.slug === data.categoria)!;
+const productos = productosDeGuia(guia);
+const actualizada = data.actualizada ?? data.publicada;
+const otras = guiasDeCategoria(data.categoria)
+  .filter((g) => g.id !== guia.id)
+  .concat(todasLasGuias().filter((g) => g.data.categoria !== data.categoria && g.id !== guia.id))
+  .slice(0, 3);
+
+const url = new URL(Astro.url.pathname, Astro.site).href;
+const primeraImagen = productos.map(({ producto }) => imagenDe(producto)).find(Boolean);
+const imagen = primeraImagen ? imagenConTamano(primeraImagen, 800) : undefined;
+const indice = headings.filter((h) => h.depth === 2);
+---
+
+<Base
+  titulo={data.titulo}
+  descripcion={data.descripcion}
+  imagen={imagen}
+  articulo={{ publicado: fechaIso(data.publicada), actualizado: fechaIso(actualizada), seccion: categoria.nombre }}
+  jsonLd={jsonLdDeGuia(guia, {
+    url,
+    sitio: { nombre: SITIO.nombre, url: new URL('/', Astro.site).href },
+    seccion: categoria.nombre,
+    imagen,
+  })}
+>
+  <Migas
+    pasos={[
+      { texto: 'Inicio', href: '/' },
+      { texto: 'Guías de compra', href: '/guias/' },
+      { texto: data.titulo },
+    ]}
+  />
+
+  <article class="seccion">
+    <div class="contenedor articulo">
+      <header class="articulo__cabecera">
+        <a href={urlCategoria(categoria.slug)} class="antetitulo">{categoria.nombre}</a>
+        <h1>{data.titulo}</h1>
+        <p class="articulo__bajada">{data.descripcion}</p>
+        <p class="articulo__meta">
+          Actualizada el <time datetime={fechaIso(actualizada)}>{fechaLegible(actualizada)}</time> · {
+            minutosDeLectura(guia)
+          } min de lectura
+        </p>
+      </header>
+
+      <nav class="indice" aria-labelledby="titulo-indice">
+        <p id="titulo-indice" class="indice__titulo">En esta guía</p>
+        <ol>
+          {
+            indice.map((h) => (
+              <li>
+                <a href={`#${h.slug}`}>{h.text}</a>
+              </li>
+            ))
+          }
+          <li><a href="#productos">Productos de la selección</a></li>
+          <li><a href="#preguntas-frecuentes">Preguntas frecuentes</a></li>
+        </ol>
+      </nav>
+
+      <div class="prosa">
+        <Content />
+      </div>
+
+      <section id="productos" class="articulo__seccion" aria-labelledby="titulo-productos">
+        <h2 id="titulo-productos">Productos de la selección</h2>
+        <p class="articulo__nota">
+          Solo muestro productos de mi selección. {AVISO_AFILIADO} El precio y la disponibilidad se ven en Amazon.
+        </p>
+        <ul class="productos">
+          {
+            productos.map(({ producto, motivo }) => (
+              <li class="productos__item">
+                <TarjetaProducto producto={producto} />
+                <p class="productos__motivo">
+                  <strong>Por qué está en esta guía:</strong> {motivo}
+                </p>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+
+      <section id="preguntas-frecuentes" class="articulo__seccion" aria-labelledby="titulo-faq">
+        <h2 id="titulo-faq">Preguntas frecuentes</h2>
+        <div class="faq">
+          {
+            data.faq.map((f) => (
+              <div class="faq__item">
+                <h3>{f.pregunta}</h3>
+                <p>{f.respuesta}</p>
+              </div>
+            ))
+          }
+        </div>
+      </section>
+    </div>
+  </article>
+
+  {
+    otras.length > 0 && (
+      <section class="seccion" aria-labelledby="titulo-otras-guias">
+        <div class="contenedor">
+          <div class="seccion__cabecera">
+            <h2 id="titulo-otras-guias">Otras guías de compra</h2>
+          </div>
+          <ul class="grilla-guias">
+            {otras.map((g) => (
+              <li>
+                <TarjetaGuia guia={g} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    )
+  }
+</Base>
+
+<style>
+  .articulo {
+    max-width: 48rem;
+  }
+
+  .articulo__cabecera h1 {
+    margin-top: 0.25rem;
+  }
+
+  .articulo__cabecera .antetitulo {
+    text-decoration: none;
+  }
+
+  .articulo__bajada {
+    margin-top: 0.75rem;
+    color: var(--texto-suave);
+    font-size: 1.1rem;
+  }
+
+  .articulo__meta {
+    margin-top: 0.75rem;
+    color: var(--texto-tenue);
+    font-size: 0.875rem;
+  }
+
+  .indice {
+    margin: 1.75rem 0;
+    padding: 1rem 1.25rem;
+    background: var(--superficie);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+  }
+
+  .indice__titulo {
+    margin-bottom: 0.4rem;
+    font-weight: 700;
+  }
+
+  .indice ol {
+    display: grid;
+    gap: 0.25rem;
+    margin: 0;
+    padding-left: 1.25rem;
+  }
+
+  .indice a {
+    text-decoration: none;
+  }
+
+  .indice a:hover {
+    text-decoration: underline;
+  }
+
+  .articulo__seccion {
+    margin-top: 2.5rem;
+    scroll-margin-top: 6rem;
+  }
+
+  .articulo__seccion h2 {
+    margin-bottom: 0.75rem;
+  }
+
+  .articulo__nota {
+    margin-bottom: 1.25rem;
+    color: var(--texto-tenue);
+    font-size: 0.85rem;
+  }
+
+  .productos {
+    display: grid;
+    gap: 1.25rem;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .productos__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .productos__motivo {
+    color: var(--texto-suave);
+    font-size: 0.875rem;
+  }
+
+  .faq {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .faq__item {
+    padding: 1rem 1.25rem;
+    background: var(--superficie);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+  }
+
+  .faq__item h3 {
+    font-size: 1.02rem;
+  }
+
+  .faq__item p {
+    margin-top: 0.4rem;
+    color: var(--texto-suave);
+  }
+</style>

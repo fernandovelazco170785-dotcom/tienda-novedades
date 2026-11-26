@@ -1,0 +1,85 @@
+---
+import { urlCategoria } from '../lib/catalogo';
+import { minutosDeLectura, urlGuia, type Guia } from '../lib/guias';
+import categorias from '../../data/categorias.json';
+
+interface Props {
+  guia: Guia;
+}
+
+const { guia } = Astro.props;
+const categoria = categorias.find((c) => c.slug === guia.data.categoria);
+---
+
+<article class="guia">
+  {categoria && <a href={urlCategoria(categoria.slug)} class="guia__categoria">{categoria.nombre}</a>}
+  <h3 class="guia__titulo"><a href={urlGuia(guia.id)}>{guia.data.titulo}</a></h3>
+  <p class="guia__descripcion">{guia.data.descripcion}</p>
+  <p class="guia__pie">
+    <span>{minutosDeLectura(guia)} min de lectura</span>
+    <a href={urlGuia(guia.id)} aria-hidden="true" tabindex="-1">Leer la guía →</a>
+  </p>
+</article>
+
+<style>
+  .guia {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    height: 100%;
+    padding: 1.25rem;
+    background: var(--superficie);
+    border: 1px solid var(--borde);
+    border-left: 4px solid var(--acento);
+    border-radius: var(--radio);
+    box-shadow: var(--sombra);
+  }
+
+  .guia__categoria {
+    align-self: flex-start;
+    color: var(--acento-texto);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+  }
+
+  .guia__categoria:hover {
+    text-decoration: underline;
+  }
+
+  .guia__titulo {
+    font-size: 1.1rem;
+  }
+
+  .guia__titulo a {
+    color: var(--texto);
+    text-decoration: none;
+  }
+
+  .guia__titulo a:hover {
+    color: var(--acento-texto);
+    text-decoration: underline;
+  }
+
+  .guia__descripcion {
+    color: var(--texto-suave);
+    font-size: 0.9rem;
+  }
+
+  .guia__pie {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: auto;
+    padding-top: 0.25rem;
+    color: var(--texto-tenue);
+    font-size: 0.85rem;
+  }
+
+  .guia__pie a {
+    font-weight: 600;
+    text-decoration: none;
+  }
+</style>

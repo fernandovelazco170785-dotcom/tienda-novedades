@@ -1,0 +1,66 @@
+---
+import Base from '../../layouts/Base.astro';
+import Migas from '../../components/Migas.astro';
+import TarjetaGuia from '../../components/TarjetaGuia.astro';
+import { categoriasConGuias, guiasDeCategoria } from '../../lib/guias';
+import { urlCategoria } from '../../lib/catalogo';
+
+const grupos = categoriasConGuias().map((c) => ({ categoria: c, guias: guiasDeCategoria(c.slug) }));
+---
+
+<Base
+  titulo="Guías de compra"
+  descripcion="Guías de compra de componentes y periféricos de PC: qué mirar antes de comprar, errores comunes y respuestas a las dudas más buscadas."
+>
+  <Migas pasos={[{ texto: 'Inicio', href: '/' }, { texto: 'Guías de compra' }]} />
+
+  <section class="seccion">
+    <div class="contenedor">
+      <div class="seccion__cabecera">
+        <h1>Guías de compra</h1>
+        <p>
+          Qué revisar antes de comprar, los errores que más se repiten y respuestas cortas a las dudas más buscadas. Cada
+          guía muestra solo productos de la selección.
+        </p>
+      </div>
+
+      {
+        grupos.map(({ categoria, guias }) => (
+          <section class="grupo" aria-labelledby={`guias-${categoria.slug}`}>
+            <h2 id={`guias-${categoria.slug}`} class="grupo__titulo">
+              <a href={urlCategoria(categoria.slug)}>{categoria.nombre}</a>
+            </h2>
+            <ul class="grilla-guias">
+              {guias.map((g) => (
+                <li>
+                  <TarjetaGuia guia={g} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))
+      }
+    </div>
+  </section>
+</Base>
+
+<style>
+  .grupo + .grupo {
+    margin-top: 2.5rem;
+  }
+
+  .grupo__titulo {
+    margin-bottom: 1rem;
+    font-size: 1.3rem;
+  }
+
+  .grupo__titulo a {
+    color: var(--texto);
+    text-decoration: none;
+  }
+
+  .grupo__titulo a:hover {
+    color: var(--acento-texto);
+    text-decoration: underline;
+  }
+</style>

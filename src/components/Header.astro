@@ -5,6 +5,7 @@ import { categoriasConProductos, urlCategoria } from '../lib/catalogo';
 const ruta = Astro.url.pathname;
 const enlaces = [
   { href: '/', texto: 'Inicio' },
+  { href: '/guias/', texto: 'Guías' },
   ...categoriasConProductos().map((c) => ({ href: urlCategoria(c.slug), texto: c.nombre })),
 ];
 const esActual = (href: string) => (href === '/' ? ruta === '/' : ruta.startsWith(href));

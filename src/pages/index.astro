@@ -1,6 +1,8 @@
 ---
 import Base from '../layouts/Base.astro';
 import TarjetaProducto from '../components/TarjetaProducto.astro';
+import TarjetaGuia from '../components/TarjetaGuia.astro';
+import { todasLasGuias } from '../lib/guias';
 import {
   categoriasConProductos,
   novedades,
@@ -12,6 +14,10 @@ import {
 const estrella = productosEstrella();
 const nuevos = novedades(6);
 const categorias = categoriasConProductos();
+// Una guía por categoría (la más reciente de cada una), hasta tres.
+const guias = todasLasGuias()
+  .filter((g, i, todas) => todas.findIndex((o) => o.data.categoria === g.data.categoria) === i)
+  .slice(0, 3);
 ---
 
 <Base>
@@ -67,6 +73,30 @@ const categorias = categoriasConProductos();
     </div>
   </section>
 
+  {
+    guias.length > 0 && (
+      <section class="seccion" id="guias" aria-labelledby="titulo-guias">
+        <div class="contenedor">
+          <div class="seccion__cabecera">
+            <span class="antetitulo">Antes de comprar</span>
+            <h2 id="titulo-guias">Guías de compra</h2>
+            <p>Qué mirar, qué errores evitar y respuestas a las dudas más buscadas.</p>
+          </div>
+          <ul class="grilla-guias">
+            {guias.map((g) => (
+              <li>
+                <TarjetaGuia guia={g} />
+              </li>
+            ))}
+          </ul>
+          <p class="ver-todas">
+            <a href="/guias/">Ver todas las guías →</a>
+          </p>
+        </div>
+      </section>
+    )
+  }
+
   <section class="seccion" aria-labelledby="titulo-categorias">
     <div class="contenedor">
       <div class="seccion__cabecera">
@@ -95,6 +125,19 @@ const categorias = categoriasConProductos();
 </Base>
 
 <style>
+  .ver-todas {
+    margin-top: 1.25rem;
+    font-weight: 600;
+  }
+
+  .ver-todas a {
+    text-decoration: none;
+  }
+
+  .ver-todas a:hover {
+    text-decoration: underline;
+  }
+
   .portada {
     padding-block: 3rem 2.5rem;
     background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #451a03 100%);
