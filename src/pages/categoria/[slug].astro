@@ -2,6 +2,8 @@
 import Base from '../../layouts/Base.astro';
 import Migas from '../../components/Migas.astro';
 import TarjetaProducto from '../../components/TarjetaProducto.astro';
+import TarjetaGuia from '../../components/TarjetaGuia.astro';
+import { guiasDeCategoria } from '../../lib/guias';
 import { categoriasConProductos, productosDeCategoria, urlCategoria, type Categoria } from '../../lib/catalogo';
 
 export function getStaticPaths() {
@@ -18,6 +20,7 @@ interface Props {
 const { categoria } = Astro.props;
 const productos = productosDeCategoria(categoria.slug);
 const otras = categoriasConProductos().filter((c) => c.slug !== categoria.slug);
+const guias = guiasDeCategoria(categoria.slug);
 ---
 
 <Base titulo={categoria.nombre} descripcion={`${categoria.descripcion} Selección con enlaces a Amazon.`}>
@@ -34,6 +37,26 @@ const otras = categoriasConProductos().filter((c) => c.slug !== categoria.slug);
       </div>
     </div>
   </section>
+
+  {
+    guias.length > 0 && (
+      <section class="seccion" aria-labelledby="titulo-guias">
+        <div class="contenedor">
+          <div class="seccion__cabecera">
+            <h2 id="titulo-guias">Guías de compra de {categoria.nombre.toLowerCase()}</h2>
+            <p>Antes de elegir, revisa qué mirar y qué errores evitar.</p>
+          </div>
+          <ul class="grilla-guias">
+            {guias.map((g) => (
+              <li>
+                <TarjetaGuia guia={g} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    )
+  }
 
   {
     otras.length > 0 && (

@@ -260,3 +260,77 @@ a:hover {
 .migas [aria-current] {
   color: var(--texto);
 }
+
+/* ===== Guías de compra ===== */
+.grilla-guias {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Texto largo escrito en Markdown. */
+.prosa {
+  font-size: 1.0625rem;
+  line-height: 1.75;
+}
+
+.prosa > * + * {
+  margin-top: 1.1rem;
+}
+
+.prosa h2 {
+  margin-top: 2.5rem;
+  font-size: clamp(1.35rem, 1.15rem + 0.8vw, 1.7rem);
+  scroll-margin-top: 6rem;
+}
+
+.prosa h3 {
+  margin-top: 1.75rem;
+  font-size: 1.2rem;
+  scroll-margin-top: 6rem;
+}
+
+.prosa ul,
+.prosa ol {
+  padding-left: 1.4rem;
+}
+
+.prosa li + li {
+  margin-top: 0.4rem;
+}
+
+.prosa strong {
+  color: var(--texto);
+}
+
+.prosa blockquote {
+  margin-inline: 0;
+  padding: 0.75rem 1.1rem;
+  background: var(--acento-suave);
+  border-left: 4px solid var(--acento);
+  border-radius: 0.5rem;
+}
+
+.prosa table {
+  /* Bloque desplazable: en el celular la tabla se mueve dentro de su caja, nunca la página. */
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.prosa th,
+.prosa td {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--borde);
+  text-align: left;
+  vertical-align: top;
+}
+
+.prosa th {
+  background: var(--fondo);
+}

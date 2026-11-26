@@ -18,6 +18,7 @@ import {
 } from './lib/datos.mjs';
 import { crearCliente, describirError, esErrorFatal, pedirPropuestas, usoVacio } from './lib/claude.mjs';
 import { resumenJson, resumenMarkdown } from './lib/resumen.mjs';
+import { productosCitadosEnGuias } from './lib/guias.mjs';
 
 /** @typedef {import('./lib/resumen.mjs').Resumen} Resumen */
 /** @typedef {import('./lib/datos.mjs').Datos} Datos */
@@ -109,7 +110,8 @@ async function proponer(datos, config, hoy, resumen) {
     }
   }
 
-  const { retirados, ignorados } = aplicarRetiros(datos, retiros, config.maxRetiros, hoy);
+  const citados = await productosCitadosEnGuias();
+  const { retirados, ignorados } = aplicarRetiros(datos, retiros, config.maxRetiros, hoy, citados);
   resumen.retirados = retirados;
   for (const motivo of ignorados) resumen.avisos.push(`Retiro no aplicado: ${motivo}.`);
 

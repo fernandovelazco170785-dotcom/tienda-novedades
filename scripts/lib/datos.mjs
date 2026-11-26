@@ -251,8 +251,10 @@ function urlHost(url) {
  * @param {{ id: string, categoria: string, motivo: string, fuentes: string[] }[]} retiros
  * @param {number} maximo
  * @param {string} hoy
+ * @param {Map<string, string[]>} [protegidos] productos citados en guías → ids de esas guías. No se retiran:
+ *   si desaparecieran, la guía citaría un producto inexistente y el build fallaría.
  */
-export function aplicarRetiros(datos, retiros, maximo, hoy) {
+export function aplicarRetiros(datos, retiros, maximo, hoy, protegidos = new Map()) {
   /** @type {{ producto: Producto, motivo: string, fuentes: string[] }[]} */
   const retirados = [];
   /** @type {string[]} */
@@ -262,6 +264,13 @@ export function aplicarRetiros(datos, retiros, maximo, hoy) {
     const i = datos.productos.findIndex((p) => p.id === retiro.id && p.categoria === retiro.categoria);
     if (i === -1) {
       ignorados.push(`"${retiro.id}": no existe en esa categoría`);
+      continue;
+    }
+    const guias = protegidos.get(retiro.id);
+    if (guias) {
+      ignorados.push(
+        `"${retiro.id}": aparece en la guía ${guias.join(', ')}. Si de verdad hay que retirarlo (${retiro.motivo.trim()}), quítalo primero de la guía`,
+      );
       continue;
     }
     if (retirados.length >= maximo) {

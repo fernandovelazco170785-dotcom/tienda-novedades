@@ -12,7 +12,9 @@ const ASIN = /^[A-Z0-9]{10}$/;
 // Detecta precios escritos a mano: "$59", "59 USD", "12 dólares"…
 const PRECIO_FIJO = /\$\s?\d|\d\s?(?:usd|us\$|d[oó]lares)\b/i;
 
-const sinPrecios = (/** @type {string} */ texto) => !PRECIO_FIJO.test(texto);
+/** true si el texto trae un precio escrito ("$59", "59 USD"…). La web nunca los muestra. @param {string} texto */
+export const tienePrecioEscrito = (texto) => PRECIO_FIJO.test(texto);
+const sinPrecios = (/** @type {string} */ texto) => !tienePrecioEscrito(texto);
 const MSG_SIN_PRECIOS = 'no escribas precios fijos; el precio se ve en Amazon';
 
 // La web nunca muestra precios. Los esquemas ya rechazan campos desconocidos;
