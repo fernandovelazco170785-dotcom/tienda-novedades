@@ -66,7 +66,8 @@ export function leerConfig(env) {
     maxPendientes: entero(env, 'MAX_PENDIENTES', 12, 1, 50),
     maxRetiros: entero(env, 'MAX_RETIROS', 2, 0, 5),
     maxBusquedasPorCategoria: entero(env, 'MAX_BUSQUEDAS_POR_CATEGORIA', 3, 1, 10),
-    maxTokensRespuesta: entero(env, 'MAX_TOKENS_RESPUESTA', 16000, 2000, 32000),
+    // Tope 21000: el SDK rechaza respuestas más largas sin streaming (más de 10 minutos estimados).
+    maxTokensRespuesta: entero(env, 'MAX_TOKENS_RESPUESTA', 16000, 2000, 21000),
     maxTokensEjecucion: entero(env, 'MAX_TOKENS_EJECUCION', 400000, 20000, 2000000),
   };
 }

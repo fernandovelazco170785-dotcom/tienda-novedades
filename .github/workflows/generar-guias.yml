@@ -1,0 +1,104 @@
+# Genera guías de compra con la API de Claude y abre un Pull Request para que las revises.
+# No usa Claude Code: llama a la API con el SDK, igual que el script semanal del catálogo.
+#
+# Cómo usarlo: Actions → Generar guías de compra → Run workflow → elige categoría, cantidad y,
+# si quieres, temas. Cada guía se valida con las mismas reglas del build; si no cumple, se le pide
+# a Claude que la corrija (máximo 2 veces). El PR trae el costo estimado de la ejecución.
+
+name: Generar guías de compra
+
+on:
+  workflow_dispatch:
+    inputs:
+      categoria:
+        description: 'Categoría de las guías (si agregas una categoría al catálogo, súmala aquí)'
+        type: choice
+        options: [componentes, perifericos, monitores, almacenamiento]
+      cantidad:
+        description: 'Cuántas guías generar'
+        type: choice
+        options: ['1', '2', '3', '4', '5']
+        default: '1'
+      temas:
+        description: 'Temas opcionales, separados por punto y coma (ej.: cómo elegir un SSD NVMe; fuente de poder para PC gamer)'
+        type: string
+        required: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: generar-guias
+  cancel-in-progress: false
+
+env:
+  ASTRO_TELEMETRY_DISABLED: '1'
+
+jobs:
+  generar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Preparar Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Generar guías con Claude
+        env:
+          # La clave solo existe como secreto de GitHub; nunca se escribe en el código.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Mismo modelo y opciones que el script semanal (Settings → Secrets and variables → Actions → Variables).
+          CLAUDE_MODELO: ${{ vars.CLAUDE_MODELO }}
+          CLAUDE_ESFUERZO: ${{ vars.CLAUDE_ESFUERZO }}
+          BUSQUEDA_WEB: ${{ vars.BUSQUEDA_WEB }}
+          # Límites propios de las guías: son más largas que las propuestas del catálogo.
+          MAX_BUSQUEDAS_POR_CATEGORIA: ${{ vars.MAX_BUSQUEDAS_POR_GUIA || '5' }}
+          MAX_TOKENS_RESPUESTA: ${{ vars.MAX_TOKENS_RESPUESTA_GUIAS || '20000' }}
+          MAX_TOKENS_EJECUCION: ${{ vars.MAX_TOKENS_EJECUCION_GUIAS || '600000' }}
+          CATEGORIA: ${{ inputs.categoria }}
+          CANTIDAD: ${{ inputs.cantidad }}
+          TEMAS: ${{ inputs.temas }}
+        run: node scripts/generar-guias.mjs --categoria "$CATEGORIA" --cantidad "$CANTIDAD" --temas="$TEMAS"
+
+      - name: Pruebas
+        run: npm test
+
+      - name: Comprobar que la web compila
+        run: npm run build
+
+      - name: Abrir el Pull Request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RAMA: bot/guias-${{ github.run_id }}
+          BASE: ${{ github.event.repository.default_branch }}
+          DUENO: ${{ github.repository_owner }}
+          CATEGORIA: ${{ inputs.categoria }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -b "$RAMA"
+          git add src/content/guias
+          if git diff --cached --quiet; then
+            echo "::error::No hay guías nuevas para subir."
+            exit 1
+          fi
+          git commit -m "Guías de compra generadas: $CATEGORIA"
+          git push origin "HEAD:$RAMA"
+          gh pr create --base "$BASE" --head "$RAMA" \
+            --title "Guías de compra: $CATEGORIA ($(date -u +%F))" \
+            --body-file tmp/resumen-guias.md
+          gh pr edit "$RAMA" --add-assignee "$DUENO" || echo "::warning::No se pudo asignar el PR a $DUENO."
+
+      - name: Resumen de la ejecución
+        if: always()
+        run: |
+          if [ -f tmp/resumen-guias.md ]; then cat tmp/resumen-guias.md >> "$GITHUB_STEP_SUMMARY"; fi

@@ -23,6 +23,8 @@ Sitio estático hecho con [Astro](https://astro.build) y desplegado en Vercel. N
 | `src/config.ts` | Nombre del sitio y texto del aviso de afiliado. |
 | `astro.config.mjs` | URL pública del sitio (`SITE_URL`), usada en el sitemap y las URL canónicas. |
 | `.github/workflows/claude.yml` | Claude en GitHub: responde cuando escribes `@claude` en un issue o PR. |
+| `scripts/generar-guias.mjs` | Genera guías de compra con la API de Claude y las valida con las reglas del build. |
+| `.github/workflows/generar-guias.yml` | Workflow manual que ejecuta el generador y abre un PR con las guías. |
 | `CLAUDE.md` | Reglas del proyecto que Claude sigue cuando trabaja en el repositorio. |
 
 ## Formato de un producto
@@ -102,6 +104,33 @@ Cada guía publica su JSON-LD `Article` y `FAQPage`, título, descripción y URL
 El script semanal **no retira productos citados en una guía**: si Claude propone retirarlo, el resumen del PR
 lo avisa para que primero lo quites de la guía.
 
+### Generar guías con Claude
+
+Actions → *Generar guías de compra* → *Run workflow*, y elige:
+
+- **categoria**: la categoría de las guías.
+- **cantidad**: de 1 a 5.
+- **temas** (opcional): separados por punto y coma, por ejemplo `cómo elegir un SSD NVMe; fuente de poder para PC gamer`.
+  Si no pones temas, Claude elige búsquedas reales que no repitan las guías existentes.
+
+El workflow llama a la API con el SDK, como el script semanal (mismo modelo, búsqueda web sin Amazon y
+respaldo automático); no usa Claude Code. Claude recibe el catálogo y las guías existentes, y solo puede citar
+productos del catálogo. Cada guía se valida con las mismas reglas del build. Si no cumple, se le devuelven los
+problemas para que la corrija, como máximo 2 veces, y si aun así falla no se incluye. Al final se abre un PR
+con las guías nuevas y un resumen con el **costo estimado**. Nada se publica hasta que haces merge.
+
+Variables opcionales (Settings → Secrets and variables → Actions → Variables):
+
+| Variable | Por defecto | Qué controla |
+|---|---|---|
+| `MAX_BUSQUEDAS_POR_GUIA` | `5` | Búsquedas web por guía. |
+| `MAX_TOKENS_RESPUESTA_GUIAS` | `20000` | Tope de cada respuesta (tope absoluto 21000). |
+| `MAX_TOKENS_EJECUCION_GUIAS` | `600000` | Tope de tokens de toda la ejecución; al llegar, no genera más guías. |
+
+`CLAUDE_MODELO`, `CLAUDE_ESFUERZO` y `BUSQUEDA_WEB` son las mismas del script semanal.
+En local: `npm run generar-guias -- --categoria perifericos --cantidad 1` (lee la clave de `.env`).
+Escribe las guías en `src/content/guias/` y el resumen en `tmp/resumen-guias.md`; el PR lo abres tú.
+
 ## Actualización automática
 
 Cada lunes un GitHub Action ejecuta `scripts/actualizar.mjs` y abre un **Pull Request** con los cambios.
@@ -144,7 +173,7 @@ Si lo cierras sin merge, la próxima ejecución empieza de cero.
 | `MAX_PENDIENTES` | `12` | Si ya hay tantos pendientes sin revisar, no se piden más (no se gasta). |
 | `MAX_RETIROS` | `2` | Retiros por ejecución. `0` = nunca quitar productos. |
 | `MAX_BUSQUEDAS_POR_CATEGORIA` | `3` | Búsquedas web por categoría. |
-| `MAX_TOKENS_RESPUESTA` | `16000` | Tope de cada respuesta de Claude. |
+| `MAX_TOKENS_RESPUESTA` | `16000` | Tope de cada respuesta de Claude (máximo 21000). |
 | `MAX_TOKENS_EJECUCION` | `400000` | Tope de tokens de toda la ejecución; al llegar, se detiene. |
 
 Cada PR trae al final el consumo y el **costo estimado** de la ejecución. Con los valores por defecto,

@@ -26,7 +26,7 @@ import Anthropic from '@anthropic-ai/sdk';
  */
 
 // Claude nunca consulta Amazon: no hacemos scraping, ni directo ni a través de la API.
-const DOMINIOS_BLOQUEADOS = [
+export const DOMINIOS_BLOQUEADOS = [
   'amazon.com',
   'amzn.to',
   'amzn.com',
@@ -157,41 +157,55 @@ function sumarUso(uso, respuesta) {
 }
 
 /**
- * Pide a Claude propuestas para una categoría.
+ * Conversación con Claude hasta que entrega su resultado llamando a `herramienta`.
+ * Mismo modelo, esfuerzo, búsqueda web (sin Amazon) y respaldo automático para todos los scripts.
+ * `messages` solo se extiende, nunca se edita (lo pide la API): al volver, incluye la respuesta final
+ * de Claude, así quien llama puede continuar la conversación (por ejemplo, para pedir una corrección).
  * @param {object} p
  * @param {Anthropic} p.cliente
  * @param {Config} p.config
  * @param {Uso} p.uso se acumula aquí
- * @param {Parameters<typeof mensajeCategoria>[0]} p.contexto
- * @returns {Promise<{ propuestas: Propuesta[], retiros: Retiro[], aviso?: string }>}
+ * @param {string} p.sistema
+ * @param {{ name: string } & Record<string, unknown>} p.herramienta definición con strict: true
+ * @param {any[]} p.messages
+ * @param {number} p.maxBusquedas búsquedas web permitidas en esta conversación
+ * @param {number} [p.maxVueltas] pausas de la búsqueda web + un recordatorio
+ * @param {string} [p.recordatorio] texto si Claude termina sin entregar (se envía una sola vez)
+ * @returns {Promise<{ entrega: import('@anthropic-ai/sdk/resources/beta/messages/messages').BetaToolUseBlock | null, aviso?: string }>}
  */
-export async function pedirPropuestas({ cliente, config, uso, contexto }) {
+export async function pedirEntrega({
+  cliente,
+  config,
+  uso,
+  sistema,
+  herramienta,
+  messages,
+  maxBusquedas,
+  maxVueltas = 4,
+  recordatorio = `Entrega el resultado llamando a la herramienta ${herramienta.name}.`,
+}) {
   /** @type {any[]} */
-  const tools = [HERRAMIENTA_ENTREGA];
+  const tools = [herramienta];
   if (config.busquedaWeb) {
     tools.push({
       type: 'web_search_20260209',
       name: 'web_search',
-      max_uses: config.maxBusquedasPorCategoria,
+      max_uses: maxBusquedas,
       blocked_domains: DOMINIOS_BLOQUEADOS,
     });
   }
-
-  /** @type {any[]} */
-  const messages = [{ role: 'user', content: mensajeCategoria(contexto) }];
   let recordatorioEnviado = false;
 
-  // Pocas vueltas: pausas de la búsqueda web y, como mucho, un recordatorio.
-  for (let vuelta = 0; vuelta < 4; vuelta++) {
+  for (let vuelta = 0; vuelta < maxVueltas; vuelta++) {
     if (uso.entrada + uso.salida >= config.maxTokensEjecucion) {
-      return { propuestas: [], retiros: [], aviso: 'se alcanzó el límite de tokens de la ejecución' };
+      return { entrega: null, aviso: 'se alcanzó el límite de tokens de la ejecución' };
     }
 
     const respuesta = await cliente.beta.messages.create({
       model: config.modelo,
       max_tokens: config.maxTokensRespuesta,
       output_config: { effort: config.esfuerzo },
-      system: SISTEMA,
+      system: sistema,
       tools,
       messages,
       // Si el modelo rechaza la petición por sus filtros de seguridad, la API reintenta
@@ -202,34 +216,54 @@ export async function pedirPropuestas({ cliente, config, uso, contexto }) {
     sumarUso(uso, respuesta);
 
     if (respuesta.stop_reason === 'refusal') {
-      return { propuestas: [], retiros: [], aviso: 'Claude rechazó la petición' };
-    }
-
-    const entrega = respuesta.content.find(
-      /** @returns {b is import('@anthropic-ai/sdk/resources/beta/messages/messages').BetaToolUseBlock} */
-      (b) => b.type === 'tool_use' && b.name === HERRAMIENTA_ENTREGA.name,
-    );
-    if (entrega) {
-      const input = /** @type {{ propuestas?: Propuesta[], retiros?: Retiro[] }} */ (entrega.input);
-      return { propuestas: input.propuestas ?? [], retiros: input.retiros ?? [] };
-    }
-
-    if (respuesta.stop_reason === 'max_tokens') {
-      return { propuestas: [], retiros: [], aviso: 'la respuesta superó MAX_TOKENS_RESPUESTA' };
+      return { entrega: null, aviso: 'Claude rechazó la petición' };
     }
 
     // La conversación solo se extiende (nunca se edita), como pide la API.
     messages.push({ role: 'assistant', content: respuesta.content });
+
+    // Una respuesta cortada por el tope de tokens puede traer una entrega incompleta: no se usa.
+    if (respuesta.stop_reason === 'max_tokens') {
+      return { entrega: null, aviso: 'la respuesta superó MAX_TOKENS_RESPUESTA' };
+    }
+
+    const entrega = respuesta.content.find(
+      /** @returns {b is import('@anthropic-ai/sdk/resources/beta/messages/messages').BetaToolUseBlock} */
+      (b) => b.type === 'tool_use' && b.name === herramienta.name,
+    );
+    if (entrega) return { entrega };
     if (respuesta.stop_reason === 'pause_turn') continue; // la búsqueda web sigue en el servidor
 
     if (recordatorioEnviado) break;
     recordatorioEnviado = true;
-    messages.push({
-      role: 'user',
-      content: 'Entrega el resultado llamando a la herramienta entregar_propuestas (usa listas vacías si no hay nada).',
-    });
+    messages.push({ role: 'user', content: recordatorio });
   }
-  return { propuestas: [], retiros: [], aviso: 'Claude no entregó el resultado' };
+  return { entrega: null, aviso: 'Claude no entregó el resultado' };
+}
+
+/**
+ * Pide a Claude propuestas para una categoría.
+ * @param {object} p
+ * @param {Anthropic} p.cliente
+ * @param {Config} p.config
+ * @param {Uso} p.uso se acumula aquí
+ * @param {Parameters<typeof mensajeCategoria>[0]} p.contexto
+ * @returns {Promise<{ propuestas: Propuesta[], retiros: Retiro[], aviso?: string }>}
+ */
+export async function pedirPropuestas({ cliente, config, uso, contexto }) {
+  const { entrega, aviso } = await pedirEntrega({
+    cliente,
+    config,
+    uso,
+    sistema: SISTEMA,
+    herramienta: HERRAMIENTA_ENTREGA,
+    messages: [{ role: 'user', content: mensajeCategoria(contexto) }],
+    maxBusquedas: config.maxBusquedasPorCategoria,
+    recordatorio: 'Entrega el resultado llamando a la herramienta entregar_propuestas (usa listas vacías si no hay nada).',
+  });
+  if (!entrega) return { propuestas: [], retiros: [], aviso };
+  const input = /** @type {{ propuestas?: Propuesta[], retiros?: Retiro[] }} */ (entrega.input);
+  return { propuestas: input.propuestas ?? [], retiros: input.retiros ?? [] };
 }
 
 /** Errores que no tiene sentido reintentar en otra categoría (clave mala, sin permiso, sin saldo). */
