@@ -12,7 +12,8 @@
     "preview": "astro preview",
     "actualizar": "node --env-file-if-exists=.env scripts/actualizar.mjs --modo completo",
     "publicar": "node scripts/actualizar.mjs --modo solo_publicar",
-    "test": "node --test \"scripts/pruebas/*.test.mjs\""
+    "test": "node --test \"scripts/pruebas/*.test.mjs\"",
+    "generar-guias": "node --env-file-if-exists=.env scripts/generar-guias.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.4",
