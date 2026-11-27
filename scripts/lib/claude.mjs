@@ -119,13 +119,21 @@ Al terminar, llama una sola vez a la herramienta entregar_propuestas con el resu
  * @param {import('./datos.mjs').Producto[]} p.ejemplos productos de muestra para imitar el estilo
  * @param {number} p.cupo
  * @param {string} p.hoy
+ * @param {string[]} [p.temas] temas pedidos por el dueño (opcional)
  */
-function mensajeCategoria({ categoria, actuales, conocidos, ejemplos, cupo, hoy }) {
+export function mensajeCategoria({ categoria, actuales, conocidos, ejemplos, cupo, hoy, temas = [] }) {
   const lista = (/** @type {string[]} */ l) => (l.length ? l.map((x) => `- ${x}`).join('\n') : '- (ninguno)');
+  const enfoque = temas.length
+    ? `
+El dueño pidió enfocar las propuestas en estos temas, en este orden. Propón como máximo un producto por tema y sáltate el tema si no encuentras uno que cumpla las reglas:
+${lista(temas)}
+Si un tema es una pieza que se combina con los productos actuales (memoria, tarjeta madre, fuente de poder…), elige una que sea compatible con ellos y dilo en el motivo.
+`
+    : '';
   return `Fecha de hoy: ${hoy}
 Categoría: ${categoria.nombre} (${categoria.descripcion})
 Puedes proponer como máximo ${cupo} producto(s) nuevo(s).
-
+${enfoque}
 Productos actuales en esta categoría (id: título):
 ${lista(actuales.map((p) => `${p.id}: ${p.titulo}`))}
 

@@ -3,6 +3,7 @@
 // y las escribe en src/content/guias/. El Pull Request lo abre el workflow generar-guias.yml.
 //
 //   node scripts/generar-guias.mjs --categoria perifericos --cantidad 2 [--temas "tema 1; tema 2"]
+//   node scripts/generar-guias.mjs --categoria auto --cantidad 2     (rota la categoría cada día)
 //
 // Usa los mismos límites que el script semanal (MAX_TOKENS_EJECUCION, MAX_TOKENS_RESPUESTA,
 // MAX_BUSQUEDAS_POR_CATEGORIA como búsquedas por guía, CLAUDE_MODELO, CLAUDE_ESFUERZO, BUSQUEDA_WEB).
@@ -16,6 +17,7 @@ import { crearCliente, describirError, esErrorFatal, usoVacio } from './lib/clau
 import { leerGuias } from './lib/guias.mjs';
 import {
   aMarkdown,
+  categoriaDelDia,
   generarGuia,
   MAX_GUIAS,
   palabras,
@@ -64,15 +66,21 @@ async function main() {
     JSON.parse(await readFile(join(DIR_DATOS, 'products.json'), 'utf8')),
     JSON.parse(await readFile(join(DIR_DATOS, 'categorias.json'), 'utf8')),
   );
-  const categoria = categorias.find((c) => c.slug === values.categoria);
+  const hoy = fechaDeHoy();
+  const conProductos = categorias.filter((c) => productos.some((p) => p.categoria === c.slug));
+  // "auto" (horario diario): una categoría distinta cada día, entre las que tienen productos.
+  const categoria =
+    values.categoria === 'auto' ? categoriaDelDia(conProductos, hoy) : categorias.find((c) => c.slug === values.categoria);
   if (!categoria) {
-    throw new Error(`--categoria "${values.categoria ?? ''}" no existe. Usa una de: ${categorias.map((c) => c.slug).join(', ')}.`);
+    throw new Error(
+      `--categoria "${values.categoria ?? ''}" no existe. Usa auto o una de: ${categorias.map((c) => c.slug).join(', ')}.`,
+    );
   }
+  console.log(`Categoría: ${categoria.slug}${values.categoria === 'auto' ? ' (rotación diaria)' : ''}`);
   if (!productos.some((p) => p.categoria === categoria.slug)) {
     throw new Error(`La categoría "${categoria.slug}" no tiene productos publicados: una guía no podría mostrar ninguno.`);
   }
 
-  const hoy = fechaDeHoy();
   const existentes = await leerGuias(DIR_GUIAS);
   // Una guía publicada (de la misma categoría si hay) como modelo de tono y estructura.
   const guiaDeEjemplo = existentes.find((g) => g.data?.categoria === categoria.slug) ?? existentes[0];

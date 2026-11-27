@@ -106,7 +106,11 @@ lo avisa para que primero lo quites de la guía.
 
 ### Generar guías con Claude
 
-Actions → *Generar guías de compra* → *Run workflow*, y elige:
+**Todos los días a las 6:00 de Lima** el workflow *Generar guías de compra* escribe 2 guías. La categoría rota
+cada día (componentes → periféricos → monitores → almacenamiento) y Claude elige los temas, priorizando los
+productos de esa categoría que aparecen en menos guías.
+
+También puedes lanzarlo a mano: Actions → *Generar guías de compra* → *Run workflow*, y elige:
 
 - **categoria**: la categoría de las guías.
 - **cantidad**: de 1 a 5.
@@ -117,7 +121,7 @@ El workflow llama a la API con el SDK, como el script semanal (mismo modelo, bú
 respaldo automático); no usa Claude Code. Claude recibe el catálogo y las guías existentes, y solo puede citar
 productos del catálogo. Cada guía se valida con las mismas reglas del build. Si no cumple, se le devuelven los
 problemas para que la corrija, como máximo 2 veces, y si aun así falla no se incluye. Al final se abre un PR
-con las guías nuevas y un resumen con el **costo estimado**. Nada se publica hasta que haces merge.
+con las guías nuevas y un resumen con el **costo estimado**, que se mergea solo (ver [Merge automático](#merge-automático)).
 
 Variables opcionales (Settings → Secrets and variables → Actions → Variables):
 
@@ -130,11 +134,13 @@ Variables opcionales (Settings → Secrets and variables → Actions → Variabl
 `CLAUDE_MODELO`, `CLAUDE_ESFUERZO` y `BUSQUEDA_WEB` son las mismas del script semanal.
 En local: `npm run generar-guias -- --categoria perifericos --cantidad 1` (lee la clave de `.env`).
 Escribe las guías en `src/content/guias/` y el resumen en `tmp/resumen-guias.md`; el PR lo abres tú.
+Con `--categoria auto` usa la categoría del día, como el horario diario.
 
 ## Actualización automática
 
-Cada lunes un GitHub Action ejecuta `scripts/actualizar.mjs` y abre un **Pull Request** con los cambios.
-Nada llega a la web hasta que haces merge.
+Cada lunes un GitHub Action ejecuta `scripts/actualizar.mjs` y abre un **Pull Request** con los cambios,
+que se mergea solo si pasan las pruebas y el build (ver [Merge automático](#merge-automático)).
+Las propuestas nuevas no aparecen en la web: quedan en `data/pendientes.json` hasta que les pongas enlace.
 
 1. **Publica** los pendientes a los que ya pegaste enlace (pasan a `products.json` con la fecha del día).
 2. **Pide a Claude** propuestas nuevas por categoría. Claude busca en la web (nunca en Amazon) y redacta
@@ -143,17 +149,34 @@ Nada llega a la web hasta que haces merge.
 3. Puede **sugerir retiros** de productos descontinuados o reemplazados (máximo 2 por semana, con fuente).
    Quedan en `data/descartados.json`, desde donde se pueden devolver copiando `item` a `products.json`.
 
-### Revisar el Pull Request
+### Publicar o descartar propuestas
 
-- **Publicar una propuesta:** en el PR abre `data/pendientes.json` → editar → pega el enlace de SiteStripe en
-  `url_afiliado` (opcional: la URL de la foto en `imagen`, y `"destacado": true`). Al guardar en esa rama,
-  el Action la mueve solo a `products.json` en el mismo PR.
+En GitHub abre `data/pendientes.json` en `main` → lápiz (editar) → *Commit changes* directo a `main`:
+
+- **Publicar una propuesta:** pega el enlace de SiteStripe en `url_afiliado` (opcional: la URL de la foto en
+  `imagen`, y `"destacado": true`). Al guardar, el Action la mueve solo a `products.json`, abre un PR y lo mergea
+  si pasan las pruebas y el build. Sin usar la API.
 - **Descartarla:** cambia `"estado": "pendiente"` por `"estado": "descartado"`.
 - **Dejarla para después:** no hagas nada. Sigue en pendientes y no aparece en la web.
-- Revisa la vista previa de Vercel del PR y haz **merge**.
 
-Mientras el PR esté abierto, las ejecuciones siguientes suman cambios al mismo PR.
-Si lo cierras sin merge, la próxima ejecución empieza de cero.
+Si un PR del catálogo queda abierto (no se pudo mergear solo), las ejecuciones siguientes suman cambios a ese
+mismo PR; también puedes editar `data/pendientes.json` en su rama. Si lo cierras sin merge, la próxima ejecución
+empieza de cero.
+
+### Merge automático
+
+Los PR de *Generar guías de compra* y de *Actualizar catálogo* se mergean solos, desde el mismo workflow, cuando:
+
+1. `npm test` y `npm run build` pasaron en esa ejecución (si algo falla, el workflow se detiene y GitHub te avisa);
+2. `main` no cambió mientras corría (así lo que se publica es exactamente lo que se probó).
+
+Si no se cumple lo segundo, el PR queda abierto con un comentario y lo mergeas tú. Los dos workflows comparten
+la cola `tienda-bot`, así que nunca corren a la vez.
+
+No hace falta activar *Allow auto-merge* en Settings ni configurar reglas de rama. **No agregues** una regla que
+exija aprobaciones o checks para `main`: el bot no podría mergear y los PR quedarían esperando.
+Para apagar el merge automático sin tocar el código: Settings → Secrets and variables → Actions → *Variables* →
+`MERGE_AUTOMATICO` = `no`. Los PR se seguirán abriendo, pero los mergeas tú.
 
 ### Configuración en GitHub (una sola vez)
 
@@ -183,6 +206,11 @@ bastante menos. Revisa el costo real de las primeras semanas y ajusta los límit
 ### Ejecutar a mano
 
 - En GitHub: Actions → *Actualizar catálogo* → *Run workflow*. Modo `solo_publicar` no usa la API ni gasta.
+- **Enfocar las propuestas** (modo `completo`): elige una **categoria** y, si quieres, **temas** separados por
+  punto y coma, por ejemplo `RAM DDR5 de 32 GB (2x16); fuente de poder de 750 W`. Claude solo revisa esa categoría,
+  propone como máximo un producto por tema (compatible con los productos actuales cuando aplica) y la categoría
+  recibe todo el cupo de `MAX_PRODUCTOS_NUEVOS`, con hasta 2 búsquedas por tema (tope 10). Máximo 8 temas.
+  En local: `npm run actualizar -- --categoria componentes --temas "placa madre AM5; fuente de 750 W"`.
 - En tu computador: copia `.env.example` como `.env`, pon tu clave y ejecuta `npm run actualizar`
   (o `npm run publicar`, que no necesita clave). `.env` nunca se sube a GitHub.
 

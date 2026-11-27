@@ -1,13 +1,19 @@
-# Genera guías de compra con la API de Claude y abre un Pull Request para que las revises.
-# No usa Claude Code: llama a la API con el SDK, igual que el script semanal del catálogo.
+# Genera guías de compra con la API de Claude, abre un Pull Request y lo mergea solo si pasan
+# npm test y npm run build. No usa Claude Code: llama a la API con el SDK, igual que el script semanal.
 #
-# Cómo usarlo: Actions → Generar guías de compra → Run workflow → elige categoría, cantidad y,
-# si quieres, temas. Cada guía se valida con las mismas reglas del build; si no cumple, se le pide
-# a Claude que la corrija (máximo 2 veces). El PR trae el costo estimado de la ejecución.
+# • Todos los días a las 6:00 de Lima (11:00 UTC): 2 guías de una categoría que rota cada día.
+#   Claude elige los temas y prioriza los productos del catálogo con menos guías.
+# • A mano: Actions → Generar guías de compra → Run workflow → categoría, cantidad y temas opcionales.
+#
+# Cada guía se valida con las mismas reglas del build; si no cumple, se le pide a Claude que la corrija
+# (máximo 2 veces). El PR trae el costo estimado. El merge automático solo ocurre si main no cambió
+# durante la ejecución, para que lo que se publica sea exactamente lo que se probó.
 
 name: Generar guías de compra
 
 on:
+  schedule:
+    - cron: '0 11 * * *' # 6:00 en Lima (UTC-5, sin horario de verano)
   workflow_dispatch:
     inputs:
       categoria:
@@ -28,8 +34,9 @@ permissions:
   contents: write
   pull-requests: write
 
+# Compartido con "Actualizar catálogo": los dos workflows mergean a main, así que nunca corren a la vez.
 concurrency:
-  group: generar-guias
+  group: tienda-bot
   cancel-in-progress: false
 
 env:
@@ -42,6 +49,10 @@ jobs:
     steps:
       - name: Descargar el repositorio
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # La última versión de main, no la del momento en que se lanzó la ejecución: si esperó en cola
+          # a que otra terminara, así ve las guías que esa otra acaba de publicar.
+          ref: ${{ github.event.repository.default_branch }}
 
       - name: Preparar Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -51,6 +62,9 @@ jobs:
 
       - name: Instalar dependencias
         run: npm ci
+
+      - name: Anotar la versión de main que se va a probar
+        run: echo "BASE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
       - name: Generar guías con Claude
         env:
@@ -64,9 +78,10 @@ jobs:
           MAX_BUSQUEDAS_POR_CATEGORIA: ${{ vars.MAX_BUSQUEDAS_POR_GUIA || '5' }}
           MAX_TOKENS_RESPUESTA: ${{ vars.MAX_TOKENS_RESPUESTA_GUIAS || '20000' }}
           MAX_TOKENS_EJECUCION: ${{ vars.MAX_TOKENS_EJECUCION_GUIAS || '600000' }}
-          CATEGORIA: ${{ inputs.categoria }}
-          CANTIDAD: ${{ inputs.cantidad }}
-          TEMAS: ${{ inputs.temas }}
+          # En el horario diario no hay formulario: categoría rotativa y 2 guías.
+          CATEGORIA: ${{ inputs.categoria || 'auto' }}
+          CANTIDAD: ${{ inputs.cantidad || '2' }}
+          TEMAS: ${{ inputs.temas || '' }}
         run: node scripts/generar-guias.mjs --categoria "$CATEGORIA" --cantidad "$CANTIDAD" --temas="$TEMAS"
 
       - name: Pruebas
@@ -81,8 +96,8 @@ jobs:
           RAMA: bot/guias-${{ github.run_id }}
           BASE: ${{ github.event.repository.default_branch }}
           DUENO: ${{ github.repository_owner }}
-          CATEGORIA: ${{ inputs.categoria }}
         run: |
+          CATEGORIA="$(node -p "require('./tmp/resumen-guias.json').categoria")"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git checkout -b "$RAMA"
@@ -97,6 +112,23 @@ jobs:
             --title "Guías de compra: $CATEGORIA ($(date -u +%F))" \
             --body-file tmp/resumen-guias.md
           gh pr edit "$RAMA" --add-assignee "$DUENO" || echo "::warning::No se pudo asignar el PR a $DUENO."
+
+      # Solo llega aquí si las pruebas y el build pasaron (cualquier paso fallido detiene el job).
+      # Para apagarlo sin tocar el código: variable MERGE_AUTOMATICO = no.
+      - name: Merge automático
+        if: vars.MERGE_AUTOMATICO != 'no'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RAMA: bot/guias-${{ github.run_id }}
+          BASE: ${{ github.event.repository.default_branch }}
+        run: |
+          ACTUAL="$(git ls-remote origin "refs/heads/$BASE" | cut -f1)"
+          if [ "$ACTUAL" != "$BASE_SHA" ]; then
+            echo "::warning::$BASE cambió durante la ejecución; el PR queda abierto para revisión."
+            gh pr comment "$RAMA" --body "No se hizo merge automático: \`$BASE\` cambió mientras se generaban las guías, así que las pruebas no cubren el resultado combinado. Revísalo y haz merge a mano, o vuelve a ejecutar el workflow."
+            exit 0
+          fi
+          gh pr merge "$RAMA" --merge --delete-branch --match-head-commit "$(git rev-parse HEAD)"
 
       - name: Resumen de la ejecución
         if: always()
