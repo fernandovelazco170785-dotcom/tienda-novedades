@@ -2,6 +2,8 @@
 // Actualización del catálogo. Dos modos:
 //   npm run actualizar   → publica pendientes con enlace + pide propuestas nuevas a Claude (usa la API)
 //   npm run publicar     → solo publica pendientes con enlace (sin API, sin costo)
+// Enfoque opcional (solo en modo completo):
+//   --categoria componentes --temas "RAM DDR5 de 32 GB; fuente de poder de 750 W"
 // Escribe data/*.json y un resumen en tmp/resumen.md y tmp/resumen.json.
 
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -19,10 +21,12 @@ import {
 import { crearCliente, describirError, esErrorFatal, pedirPropuestas, usoVacio } from './lib/claude.mjs';
 import { resumenJson, resumenMarkdown } from './lib/resumen.mjs';
 import { productosCitadosEnGuias } from './lib/guias.mjs';
+import { leerEnfoque, limitesConEnfoque } from './lib/enfoque.mjs';
 
 /** @typedef {import('./lib/resumen.mjs').Resumen} Resumen */
 /** @typedef {import('./lib/datos.mjs').Datos} Datos */
 /** @typedef {import('./lib/config.mjs').Config} Config */
+/** @typedef {import('./lib/enfoque.mjs').Enfoque} Enfoque */
 
 const DIR_DATOS = process.env.CATALOGO_DIR || 'data';
 const DIR_RESUMEN = process.env.RESUMEN_DIR || 'tmp';
@@ -39,9 +43,10 @@ function fechaDeHoy() {
 /**
  * Pide propuestas a Claude categoría por categoría, respetando todos los límites.
  * @param {Datos} datos @param {Config} config @param {string} hoy @param {Resumen} resumen
+ * @param {Enfoque} enfoque solo una categoría y, opcionalmente, temas concretos
  * @returns {Promise<boolean>} true si todas las categorías fallaron por errores de la API
  */
-async function proponer(datos, config, hoy, resumen) {
+async function proponer(datos, config, hoy, resumen, enfoque) {
   const sinRevisar = datos.pendientes.length;
   if (sinRevisar >= config.maxPendientes) {
     resumen.avisos.push(
@@ -59,7 +64,11 @@ async function proponer(datos, config, hoy, resumen) {
   const uso = usoVacio();
   const cuantos = (/** @type {string} */ slug) => datos.productos.filter((p) => p.categoria === slug).length;
   // Primero las categorías con menos productos: si se acaba el presupuesto, quedan cubiertas las que más lo necesitan.
-  const categorias = [...datos.categorias].sort((a, b) => cuantos(a.slug) - cuantos(b.slug));
+  const categorias = enfoque.categoria
+    ? [enfoque.categoria]
+    : [...datos.categorias].sort((a, b) => cuantos(a.slug) - cuantos(b.slug));
+  const limites = limitesConEnfoque(enfoque, config);
+  const configLlamada = { ...config, maxBusquedasPorCategoria: limites.busquedas };
   // Dos productos de categorías distintas como ejemplo de estilo.
   const ejemplos = datos.categorias
     .map((c) => datos.productos.find((p) => p.categoria === c.slug))
@@ -78,12 +87,12 @@ async function proponer(datos, config, hoy, resumen) {
       resumen.avisos.push(`Se alcanzó MAX_TOKENS_EJECUCION; quedaron sin revisar: ${omitidas}.`);
       break;
     }
-    const cupo = Math.min(config.maxPorCategoria, cupoTotal);
+    const cupo = Math.min(limites.porCategoria, cupoTotal);
     console.log(`→ ${categoria.nombre}: pidiendo hasta ${cupo} propuesta(s)…`);
     try {
       const r = await pedirPropuestas({
         cliente,
-        config,
+        config: configLlamada,
         uso,
         contexto: {
           categoria,
@@ -92,6 +101,7 @@ async function proponer(datos, config, hoy, resumen) {
           ejemplos,
           cupo,
           hoy,
+          temas: enfoque.temas,
         },
       });
       correctas += 1;
@@ -127,7 +137,13 @@ async function proponer(datos, config, hoy, resumen) {
 }
 
 async function main() {
-  const { values } = parseArgs({ options: { modo: { type: 'string', default: 'completo' } } });
+  const { values } = parseArgs({
+    options: {
+      modo: { type: 'string', default: 'completo' },
+      categoria: { type: 'string', default: '' },
+      temas: { type: 'string', default: '' },
+    },
+  });
   const modo = values.modo;
   if (modo !== 'completo' && modo !== 'solo_publicar') {
     throw new Error(`--modo "${modo}" no es válido. Usa completo o solo_publicar.`);
@@ -142,6 +158,10 @@ async function main() {
 
   const hoy = fechaDeHoy();
   const datos = await leerDatos(DIR_DATOS);
+  const enfoque = leerEnfoque(values.categoria, values.temas, datos.categorias);
+  if (enfoque.categoria && modo !== 'completo') {
+    console.log('Aviso: el enfoque (categoría y temas) solo se usa en modo completo; se ignora.');
+  }
 
   /** @type {Resumen} */
   const resumen = {
@@ -154,6 +174,7 @@ async function main() {
     pendientesSinRevisar: 0,
     avisos: [],
     consumo: null,
+    enfoque: modo === 'completo' && enfoque.categoria ? { categoria: enfoque.categoria.nombre, temas: enfoque.temas } : null,
   };
 
   const publicacion = publicarListos(datos, hoy);
@@ -161,7 +182,7 @@ async function main() {
   resumen.descartados = publicacion.descartadosAhora;
   resumen.avisos.push(...publicacion.errores);
 
-  const fallaronTodas = modo === 'completo' ? await proponer(datos, config, hoy, resumen) : false;
+  const fallaronTodas = modo === 'completo' ? await proponer(datos, config, hoy, resumen, enfoque) : false;
   resumen.pendientesSinRevisar = datos.pendientes.length;
 
   await guardarDatos(DIR_DATOS, datos);

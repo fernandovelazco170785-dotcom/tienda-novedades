@@ -206,6 +206,11 @@ bastante menos. Revisa el costo real de las primeras semanas y ajusta los límit
 ### Ejecutar a mano
 
 - En GitHub: Actions → *Actualizar catálogo* → *Run workflow*. Modo `solo_publicar` no usa la API ni gasta.
+- **Enfocar las propuestas** (modo `completo`): elige una **categoria** y, si quieres, **temas** separados por
+  punto y coma, por ejemplo `RAM DDR5 de 32 GB (2x16); fuente de poder de 750 W`. Claude solo revisa esa categoría,
+  propone como máximo un producto por tema (compatible con los productos actuales cuando aplica) y la categoría
+  recibe todo el cupo de `MAX_PRODUCTOS_NUEVOS`, con hasta 2 búsquedas por tema (tope 10). Máximo 8 temas.
+  En local: `npm run actualizar -- --categoria componentes --temas "placa madre AM5; fuente de 750 W"`.
 - En tu computador: copia `.env.example` como `.env`, pon tu clave y ejecuta `npm run actualizar`
   (o `npm run publicar`, que no necesita clave). `.env` nunca se sube a GitHub.
 

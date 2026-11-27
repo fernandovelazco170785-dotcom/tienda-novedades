@@ -3,6 +3,7 @@
 # Cuándo corre:
 #   • Cada lunes (schedule): publica pendientes con enlace y pide propuestas nuevas a Claude.
 #   • A mano (Actions → Actualizar catálogo → Run workflow): "completo" o "solo_publicar" (sin costo).
+#     Opcional: enfocar las propuestas en una categoría y en temas concretos.
 #   • Cuando editas data/pendientes.json en main (o en la rama del bot): publica los que ya tienen
 #     enlace de afiliado, sin usar la API.
 #
@@ -25,6 +26,15 @@ on:
         type: choice
         options: [completo, solo_publicar]
         default: completo
+      categoria:
+        description: 'Opcional: pedir propuestas solo para esta categoría (solo en modo completo)'
+        type: choice
+        options: [todas, componentes, perifericos, monitores, almacenamiento]
+        default: todas
+      temas:
+        description: 'Opcional, con una categoría: temas separados por punto y coma (ej.: RAM DDR5 de 32 GB; fuente de poder de 750 W)'
+        type: string
+        required: false
   push:
     branches: [main, bot/actualizacion-catalogo]
     paths: [data/pendientes.json]
@@ -104,7 +114,10 @@ jobs:
           MAX_BUSQUEDAS_POR_CATEGORIA: ${{ vars.MAX_BUSQUEDAS_POR_CATEGORIA }}
           MAX_TOKENS_RESPUESTA: ${{ vars.MAX_TOKENS_RESPUESTA }}
           MAX_TOKENS_EJECUCION: ${{ vars.MAX_TOKENS_EJECUCION }}
-        run: node scripts/actualizar.mjs --modo "$MODO"
+          # Enfoque opcional del formulario; el lunes y en tus ediciones no hay enfoque.
+          CATEGORIA: ${{ inputs.categoria || 'todas' }}
+          TEMAS: ${{ inputs.temas || '' }}
+        run: node scripts/actualizar.mjs --modo "$MODO" --categoria="$CATEGORIA" --temas="$TEMAS"
 
       - name: Pruebas
         run: npm test
